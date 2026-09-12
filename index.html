@@ -3,27 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Neon Drift · Phaser WASD Demo</title>
+    <meta name="theme-color" content="#0b1020" />
+    <title>Agent Canvas</title>
   </head>
   <body>
-    <main class="app-shell">
-      <header class="topbar">
-        <div class="brand"><span class="brand-mark">✦</span><span>NEON DRIFT</span></div>
-        <div class="status"><span class="status-dot"></span> SISTEMA ACTIVO</div>
+    <main class="workspace">
+      <header class="toolbar">
+        <div><p class="eyebrow">LIVE WORKSPACE</p><h1>Agent Canvas</h1></div>
+        <p id="agent-count" class="agent-count">0 agentes</p>
       </header>
-      <section class="hero">
-        <div class="intro">
-          <p class="eyebrow">PHASER / TYPESCRIPT / 01</p>
-          <h1>Muévete.<br /><em>Explora.</em></h1>
-          <p class="lede">Un pequeño laboratorio jugable para probar movimiento en tiempo real con un sprite construido desde cero.</p>
-          <div class="key-hint"><span class="key">W</span><span class="key-row"><span class="key">A</span><span class="key">S</span><span class="key">D</span></span><span class="hint-text">MOVER SPRITE</span></div>
-        </div>
-        <div class="game-frame">
-          <div id="game-container"></div>
-          <div class="frame-label">ARENA_01 <span>●</span></div>
-        </div>
+      <section id="canvas" class="canvas" aria-label="Canvas de agentes">
+        <div class="canvas-grid" aria-hidden="true"></div>
+        <div class="canvas-copy" aria-hidden="true"><span>ESPACIO DE TRABAJO</span><p>Crea agentes y muévelos<br />libremente por el canvas.</p></div>
+        <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
       </section>
-      <footer><span>DEMO INTERACTIVO</span><span>VELOCIDAD <strong id="speed-readout">180</strong> PX/S</span><span>© 2026</span></footer>
+      <button id="create-agent" class="create-agent" type="button" aria-label="Crear nuevo agente"><span class="plus">+</span><span>Nuevo agente</span></button>
+      <aside id="chat-panel" class="chat-panel" aria-hidden="true">
+        <header class="chat-header"><div><p class="eyebrow">CONVERSACIÓN</p><h2 id="chat-title">Agente</h2></div><button id="close-chat" class="close-chat" type="button" aria-label="Cerrar conversación">×</button></header>
+        <div id="messages" class="messages" aria-live="polite"></div>
+        <form id="message-form" class="message-form"><input id="message-input" autocomplete="off" placeholder="Escribe un mensaje…" aria-label="Mensaje" /><button type="submit">Enviar</button></form>
+      </aside>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
