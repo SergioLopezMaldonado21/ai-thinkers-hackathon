@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neon Drift · Phaser WASD Demo</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">✦</span><span>NEON DRIFT</span></div>
+        <div class="status"><span class="status-dot"></span> SISTEMA ACTIVO</div>
+      </header>
+      <section class="hero">
+        <div class="intro">
+          <p class="eyebrow">PHASER / TYPESCRIPT / 01</p>
+          <h1>Muévete.<br /><em>Explora.</em></h1>
+          <p class="lede">Un pequeño laboratorio jugable para probar movimiento en tiempo real con un sprite construido desde cero.</p>
+          <div class="key-hint"><span class="key">W</span><span class="key-row"><span class="key">A</span><span class="key">S</span><span class="key">D</span></span><span class="hint-text">MOVER SPRITE</span></div>
+        </div>
+        <div class="game-frame">
+          <div id="game-container"></div>
+          <div class="frame-label">ARENA_01 <span>●</span></div>
+        </div>
+      </section>
+      <footer><span>DEMO INTERACTIVO</span><span>VELOCIDAD <strong id="speed-readout">180</strong> PX/S</span><span>© 2026</span></footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
