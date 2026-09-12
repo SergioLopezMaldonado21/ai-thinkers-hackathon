@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "vite",
     "dev:frontend": "vite",
-    "dev:backend": "node backend/server.mjs",
+    "dev:backend": "node --env-file-if-exists=.env backend/server.mjs",
     "build": "tsc && vite build",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "node --test backend/test/*.test.mjs",
+    "test:frontend": "node --experimental-strip-types --test src/conversation-store.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
