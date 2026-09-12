@@ -1,0 +1,77 @@
+/** Seed §16 del SPEC. Es el estado inicial del server si no hay data/state.json. */
+export const seed = {
+  projects: [{
+    id: 'p1', name: 'Lanzamiento Café Frío', emoji: '☕',
+    description: 'Lanzar nuestra bebida de café frío en CDMX en 4 semanas.',
+    planoId: 'pl1', areaIds: ['inv', 'mkt', 'ven'],
+    agentIds: ['ramon', 'lupita', 'beto', 'monica', 'diego', 'sofia'],
+    xp: 120, createdAt: '2026-09-01',
+  }],
+  areas: [
+    { id: 'inv', name: 'Investigación', emoji: '🔎', color: '#4D96FF', xp: 40,
+      rules: 'Toda afirmación lleva fuente o se marca «por confirmar». Máximo 5 hallazgos.' },
+    { id: 'mkt', name: 'Marketing', emoji: '🎨', color: '#FF6B6B', xp: 25,
+      rules: 'Tono cercano, español de México, sin anglicismos innecesarios. Un mensaje principal.' },
+    { id: 'ven', name: 'Ventas', emoji: '💰', color: '#6BCB77', xp: 15,
+      rules: 'Siempre números: precio, meta semanal, canal. Nada de promesas sin cifra.' },
+  ],
+  agents: [
+    { id: 'ramon', name: 'Don Ramón', role: 'Gerente', isSupervisor: true, xp: 280, tasksDone: 24,
+      does: 'Reparte el trabajo, revisa y arma la entrega final', doesNot: 'No hace investigación ni redacción',
+      delivers: 'Documento final', skillIds: ['revisar', 'redactar'],
+      avatar: { body: 'round', eyes: 'focused', hat: 'crown', color: '#FFD93D' } },
+    { id: 'lupita', name: 'Lupita', role: 'Investigadora de mercado', areaId: 'inv', xp: 145, tasksDone: 12,
+      does: 'Encuentra tamaño de mercado, público y tendencias', doesNot: 'No propone campañas',
+      delivers: 'Lista de 5 hallazgos con fuente', skillIds: ['buscar', 'resumir'], supervisorId: 'ramon',
+      avatar: { body: 'bean', eyes: 'big', hat: 'none', color: '#4D96FF' } },
+    { id: 'beto', name: 'Beto', role: 'Analista de competencia', areaId: 'inv', xp: 60, tasksDone: 5,
+      does: 'Compara 3 competidores: precio, propuesta, canal', doesNot: 'No inventa precios',
+      delivers: 'Tabla comparativa', skillIds: ['analizar'], supervisorId: 'ramon',
+      avatar: { body: 'square', eyes: 'focused', hat: 'cap', color: '#B892FF' } },
+    { id: 'monica', name: 'Mónica', role: 'Redactora creativa', areaId: 'mkt', xp: 95, tasksDone: 8,
+      does: 'Escribe el mensaje principal y 3 variantes para redes', doesNot: 'No decide precios',
+      delivers: 'Lista de mensajes', skillIds: ['redactar'], supervisorId: 'ramon',
+      avatar: { body: 'round', eyes: 'happy', hat: 'none', color: '#FF6B6B' } },
+    { id: 'diego', name: 'Diego', role: 'Diseñador de campaña', areaId: 'mkt', xp: 30, tasksDone: 2,
+      does: 'Propone concepto visual y 3 piezas (formato, texto, canal)', doesNot: 'No redacta el copy principal',
+      delivers: 'Lista', skillIds: ['redactar'], supervisorId: 'ramon',
+      avatar: { body: 'tall', eyes: 'star', hat: 'antenna', color: '#FF9F1C' } },
+    { id: 'sofia', name: 'Sofía', role: 'Estratega de ventas', areaId: 'ven', xp: 45, tasksDone: 4,
+      does: 'Define precio, meta semanal y canales de venta', doesNot: 'No hace marketing',
+      delivers: 'Tabla con cifras', skillIds: ['analizar'], supervisorId: 'ramon',
+      avatar: { body: 'bean', eyes: 'happy', hat: 'cap', color: '#6BCB77' } },
+  ],
+  skills: [
+    { id: 'resumir', name: 'Resumir', promptSnippet: 'Condensa mucho material en pocas ideas.' },
+    { id: 'redactar', name: 'Redactar', promptSnippet: 'Escribe textos claros y listos para publicar.' },
+    { id: 'analizar', name: 'Analizar', promptSnippet: 'Encuentra patrones y saca números claros.' },
+    { id: 'traducir', name: 'Traducir', promptSnippet: 'Traduce conservando el tono.' },
+    { id: 'revisar', name: 'Revisar', promptSnippet: 'Revisa el trabajo de otros y detecta huecos.' },
+    { id: 'buscar', name: 'Buscar en web', promptSnippet: 'Busca información y contrasta fuentes.' },
+  ],
+  planos: [{
+    id: 'pl1', name: 'Lanzamiento de producto',
+    nodes: [
+      { id: 'pl1-p1', kind: 'process', title: 'Investigar mercado', agentId: 'lupita', areaId: 'inv', position: { x: 40, y: 140 },
+        instructions: 'Investiga el mercado de café frío en CDMX para el pedido del usuario.' },
+      { id: 'pl1-p2', kind: 'process', title: 'Analizar competencia', agentId: 'beto', areaId: 'inv', position: { x: 260, y: 140 },
+        instructions: 'Compara 3 competidores directos de la zona: precio, propuesta y canal.' },
+      { id: 'pl1-p3', kind: 'process', title: 'Redactar campaña', agentId: 'monica', areaId: 'mkt', position: { x: 480, y: 140 },
+        instructions: 'Escribe el mensaje principal y 3 variantes para redes.' },
+      { id: 'pl1-p4', kind: 'process', title: 'Plan de ventas', agentId: 'sofia', areaId: 'ven', position: { x: 700, y: 140 },
+        instructions: 'Define precio, meta semanal y canales de venta con el presupuesto del pedido.' },
+      { id: 'pl1-r', kind: 'result', title: 'Plan de lanzamiento', format: 'documento', position: { x: 920, y: 140 } },
+    ],
+    edges: [
+      { id: 'pl1-e1', source: 'pl1-p1', target: 'pl1-p2', kind: 'flow' },
+      { id: 'pl1-e2', source: 'pl1-p2', target: 'pl1-p3', kind: 'flow' },
+      { id: 'pl1-e3', source: 'pl1-p3', target: 'pl1-p4', kind: 'flow' },
+      { id: 'pl1-e4', source: 'pl1-p4', target: 'pl1-r', kind: 'flow' },
+    ],
+  }],
+  runs: [],
+};
+
+export const LEVELS = [0, 50, 150, 300, 500];
+export const levelFor = (xp) => LEVELS.filter((t) => xp >= t).length;
+export const XP_TASK = 10, XP_RUN_PROJECT = 25, XP_AREA_PER_TASK = 5;

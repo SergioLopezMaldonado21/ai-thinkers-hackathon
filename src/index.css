@@ -1,0 +1,10 @@
+/* Base mínima. Cada módulo trae su propio CSS con prefijo (.lb- .of- .pl- .ab- .cp- .sh-). */
+:root { color-scheme: light; }
+html, body { margin: 0; background: #F7F8FC; }
+body {
+  font-family: "Nunito Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  color: #1D2237;
+  -webkit-font-smoothing: antialiased;
+}
+*:focus-visible { outline: 2px solid #4D7CFE; outline-offset: 2px; }
+[hidden] { display: none !important; }

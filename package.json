@@ -1,0 +1,26 @@
+{
+  "name": "minioficina-dashboards",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "setup": "npm install && npm --prefix server install && node -e \"const f=require('fs');if(!f.existsSync('server/.env')){f.copyFileSync('server/.env.example','server/.env');console.log('\\n  Cre\u00e9 server/.env \u2014 pon ah\u00ed tu OPENROUTER_API_KEY (sin llave corre en modo simulaci\u00f3n).\\n')}\"",
+    "dev": "concurrently -n motor,web -c magenta,cyan \"npm --prefix server start\" \"vite\"",
+    "dev:web": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "concurrently": "^9.1.0"
+  }
+}

@@ -1,0 +1,652 @@
+<title>MiniOficina</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,800&display=swap">
+<style>
+:root{
+  --ink:#37333F; --ink-soft:#6B6577; --ink-faint:#9B95A6;
+  --floor:#F1EFE9; --paper:#FFFFFF; --panel:#F8F6F1; --line:#E6E2D9;
+  --amber:#FFD97A; --amber-deep:#D79A21;
+  --c-inv:#4D96FF; --c-mkt:#FF6B6B; --c-sal:#6BCB77; --c-pur:#B892FF; --c-org:#FF9F1C;
+  --ok:#2FA36B; --warn:#E08A18;
+  --shadow:0 1px 2px rgba(55,51,63,.05),0 10px 26px -14px rgba(55,51,63,.28);
+  --r:14px;
+}
+:root:not([data-theme="light"]){}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#EDEAF3; --ink-soft:#A7A1B6; --ink-faint:#7A7488;
+    --floor:#1B1922; --paper:#262330; --panel:#221F2B; --line:#3A3546;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 26px -14px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#EDEAF3; --ink-soft:#A7A1B6; --ink-faint:#7A7488;
+  --floor:#1B1922; --paper:#262330; --panel:#221F2B; --line:#3A3546;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 26px -14px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--floor);color:var(--ink);
+  font-family:"Nunito Sans",ui-sans-serif,system-ui,sans-serif;font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 56px;padding-left:18px;padding-right:18px}
+h1,h2,h3,.dsp{font-family:Fredoka,"Nunito Sans",system-ui,sans-serif;font-weight:600;letter-spacing:-.01em}
+h1{font-size:clamp(28px,4.4vw,42px);margin:0;text-wrap:balance}
+h2{font-size:22px;margin:0}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint)}
+.sub{color:var(--ink-soft);max-width:62ch;margin:.4em 0 0}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- header ---------- */
+header.top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:22px}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap}
+.tag{font-size:12px;font-weight:700;border:1px solid var(--line);border-radius:999px;padding:4px 11px;background:var(--paper);color:var(--ink-soft)}
+.tag.amber{background:var(--amber);color:#5B4412;border-color:transparent;font-weight:800}
+
+/* ---------- generic panel ---------- */
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}
+.panel-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:11px 16px;border-bottom:1px solid var(--line)}
+.panel-bd{padding:14px}
+
+/* ---------- office grid ---------- */
+.office-grid{display:grid;grid-template-columns:238px minmax(0,1fr) 268px;gap:14px;align-items:start}
+@media (max-width:1000px){.office-grid{grid-template-columns:1fr}}
+
+/* Tu gente */
+.area-group{margin-bottom:12px}
+.area-head{display:flex;align-items:center;gap:7px;font-weight:800;font-size:13px;margin-bottom:6px}
+.dot{width:10px;height:10px;border-radius:4px}
+.person{display:flex;gap:9px;align-items:center;padding:6px;border-radius:10px;cursor:pointer;
+  border:2px solid transparent;transition:.15s}
+.person:hover{background:var(--panel)}
+.person.sel{border-color:var(--amber-deep);background:var(--panel)}
+.person .nm{font-weight:800;font-size:13.5px;line-height:1.1}
+.person .rl{font-size:11px;color:var(--ink-faint);line-height:1.2}
+.xpbar{height:5px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:4px}
+.xpbar i{display:block;height:100%;background:var(--amber-deep);transition:width .5s ease}
+.state-chip{font-size:10px;font-weight:800;padding:1px 6px;border-radius:99px;border:1.5px solid currentColor}
+.st-libre{color:var(--ink-faint)} .st-trab{color:var(--ok)} .st-list{color:var(--c-inv)}
+
+/* Floor */
+.floor{position:relative;width:100%;aspect-ratio:960/540;background:var(--panel);
+  border-radius:10px;overflow:hidden;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:32px 32px}
+.zone{position:absolute;border:1.5px dashed;border-radius:16px}
+.zone-lbl{position:absolute;top:6px;left:10px;font-size:11.5px;font-weight:800;display:flex;gap:6px;align-items:center}
+.desk{position:absolute;border-radius:7px;background:var(--paper);border:1px solid var(--line);
+  box-shadow:0 2px 6px -2px rgba(55,51,63,.25)}
+.desk.hot{background:#FFF6DD;border-color:var(--amber)}
+.pawn{position:absolute;transform:translate(-50%,0);will-change:left,top;
+  transition:left 1.15s cubic-bezier(.3,.8,.3,1),top 1.15s cubic-bezier(.3,.8,.3,1)}
+.pawn .lbl{font-size:10px;font-weight:800;text-align:center;margin-top:-4px;white-space:nowrap;
+  text-shadow:0 1px 0 var(--paper),0 -1px 0 var(--paper),1px 0 0 var(--paper),-1px 0 0 var(--paper)}
+.door{position:absolute;font-size:22px}
+.outbox{position:absolute;left:2%;right:2%;bottom:2%;height:16%;border:1.5px dashed var(--ink-faint);
+  border-radius:12px;display:flex;align-items:center;gap:8px;padding:0 10px;overflow:hidden}
+.outbox .ttl{font-size:11px;font-weight:800;color:var(--ink-faint);letter-spacing:.08em;text-transform:uppercase}
+.deliver{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:4px 9px;font-size:11px;
+  font-weight:800;box-shadow:var(--shadow);animation:pop .4s cubic-bezier(.2,1.6,.4,1);cursor:pointer;max-width:60%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.paper{position:absolute;font-size:20px;opacity:0;pointer-events:none;z-index:5;
+  transition:left .8s ease-in-out,top .8s ease-in-out,opacity .3s}
+@keyframes pop{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+
+/* Pedidos */
+textarea,select{width:100%;font:inherit;font-size:13px;color:var(--ink);background:var(--panel);
+  border:1px solid var(--line);border-radius:12px;padding:9px 11px}
+textarea{resize:vertical;min-height:96px}
+label.fld{display:block;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-faint);margin:10px 0 4px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-size:12px;font-weight:700;border:1px solid var(--line);background:var(--panel);border-radius:999px;
+  padding:3px 10px;cursor:pointer;color:var(--ink)}
+.chip.on{border-color:var(--amber-deep);background:#FFF8E6;color:#6B5214}
+.btn{font-family:Fredoka,sans-serif;font-size:15px;font-weight:600;width:100%;margin-top:12px;
+  border:none;background:var(--amber);color:#5B4412;border-radius:999px;padding:11px 14px;
+  cursor:pointer;box-shadow:0 2px 8px -2px rgba(215,154,33,.5)}
+.btn:active{transform:translateY(1px);box-shadow:none}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:var(--paper);color:var(--ink)}
+.log{margin-top:12px;border-top:1px solid var(--line);padding-top:8px;max-height:190px;overflow:auto;
+  font-size:12px;display:flex;flex-direction:column;gap:5px}
+.log div{display:flex;gap:6px}
+.log .t{color:var(--ink-faint);font-variant-numeric:tabular-nums}
+
+/* toast */
+.toasts{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column;gap:8px;z-index:40}
+.toast{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:8px 15px;font-weight:700;
+  font-size:13px;box-shadow:var(--shadow);animation:pop .3s}
+.toast.lvl{background:var(--amber)}
+
+/* ---------- sheet ---------- */
+.sheet-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.combo{text-align:center;padding:10px 4px;border-radius:14px;background:var(--panel)}
+.combo code{font-size:9.5px;color:var(--ink-faint);display:block;margin-top:2px;word-break:break-all}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.legend .item{display:flex;gap:8px;align-items:center;font-size:12.5px;font-weight:700}
+.row-demo{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-end}
+.row-demo figure{margin:0;text-align:center}
+.row-demo figcaption{font-size:11.5px;font-weight:800;color:var(--ink-soft);margin-top:4px}
+.lab{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;margin:8px 0}
+.lab>span{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint)}
+.opt{width:46px;height:46px;border-radius:14px;border:1.5px solid var(--line);background:var(--paper);
+  display:grid;place-items:center;cursor:pointer;padding:0}
+.opt.on{border-color:var(--amber-deep);background:#FFF8E6}
+.swatch{width:30px;height:30px;border-radius:99px;border:1.5px solid rgba(0,0,0,.12);cursor:pointer;padding:0}
+.swatch.on{outline:2.5px solid var(--amber-deep);outline-offset:2px}
+pre.snip{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;
+  font-size:12px;overflow-x:auto;margin:10px 0 0}
+section{margin-top:30px}
+.sec-hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+
+/* ---------- mascota (SVG helpers) ---------- */
+.mo{position:relative;display:inline-flex;flex-direction:column;align-items:center;user-select:none}
+.mo svg{display:block;overflow:visible}
+.mo-sprite{transform-box:view-box;transform-origin:64px 116px}
+.s-idle .mo-sprite{animation:bob 1.2s ease-in-out infinite}
+.s-walking .mo-sprite{animation:walk .48s ease-in-out infinite}
+.s-working .mo-sprite{animation:work .42s ease-in-out infinite}
+.s-done .mo-sprite{animation:popq .6s cubic-bezier(.2,1.6,.4,1) 1}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes walk{0%,100%{transform:translateY(0) rotate(-2.5deg)}50%{transform:translateY(-4px) rotate(2.5deg)}}
+@keyframes work{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-2px) scaleY(1.03)}}
+@keyframes popq{0%{transform:scale(1)}35%{transform:scale(1.14)}100%{transform:scale(1)}}
+.mo-blink{transform-box:view-box;animation:blink 4.4s infinite}
+@keyframes blink{0%,95%,100%{transform:scaleY(1)}97.5%{transform:scaleY(.08)}}
+.s-working .bulb{animation:bulb .7s ease-in-out infinite}
+@keyframes bulb{0%,100%{opacity:1}50%{opacity:.35}}
+.bubble{position:absolute;left:50%;transform:translateX(-50%);background:#fff;border:1px solid rgba(46,42,51,.14);
+  border-radius:999px;display:flex;gap:3px;padding:5px 7px;box-shadow:0 4px 10px rgba(46,42,51,.16);z-index:3}
+.bubble i{width:4px;height:4px;border-radius:50%;background:#2E2A33;animation:dot 1.1s ease-in-out infinite}
+.bubble i:nth-child(2){animation-delay:.16s}.bubble i:nth-child(3){animation-delay:.32s}
+@keyframes dot{0%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
+.spark{position:absolute;color:#FFC83D;-webkit-text-stroke:1px #D79A21;animation:spk .7s ease-out forwards;z-index:3}
+@keyframes spk{0%{transform:scale(.2) rotate(-30deg);opacity:0}40%{transform:scale(1.15);opacity:1}100%{opacity:0}}
+.mo-shadow{background:#37333F;opacity:.1;border-radius:50%;margin-top:-3%;animation:shw 1.2s ease-in-out infinite}
+@keyframes shw{0%,100%{transform:scaleX(1);opacity:.1}50%{transform:scaleX(.88);opacity:.07}}
+.lvl{display:flex;gap:1px;margin-top:2px;font-family:Fredoka,sans-serif;font-weight:600}
+.lvl span{opacity:.22}.lvl span.on{opacity:1;color:#D79A21}
+.mo-badge{position:absolute;top:-2px;right:-2px;background:#FFD97A;color:#5B4412;border:2px solid #E9BE55;
+  border-radius:999px;min-width:18px;height:18px;display:grid;place-items:center;font-size:11px;font-weight:800;z-index:3}
+@media (prefers-reduced-motion:reduce){
+  .mo-sprite,.mo-blink,.bubble i,.bulb,.spark,.pawn,.paper{animation:none!important;transition:none!important}
+}
+footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-faint)}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <p class="eyebrow">AI Tinkerers CDMX · Agents Everywhere · 12 sep 2026</p>
+      <h1>MiniOficina</h1>
+      <p class="sub">Un agente = cuerpo + ojos + gorro + color, y de ese color sale toda su paleta: relleno claro, contorno del mismo tono, accesorio. Abajo, el plano manda: cada área es una zona, cada agente una mesa, y cada pedido recorre el plano hasta caer en Entregables.</p>
+    </div>
+    <div class="badge-row">
+      <span class="tag amber">§10 Avatares</span>
+      <span class="tag">64 combos</span>
+      <span class="tag">+8 extras</span>
+      <span class="tag">SIM_MODE</span>
+    </div>
+  </header>
+
+  <!-- ══════════ OFICINA ══════════ -->
+  <section id="oficina" style="margin-top:0">
+    <div class="office-grid">
+
+      <div class="panel">
+        <div class="panel-hd"><strong class="dsp">Tu gente</strong><span class="eyebrow num" id="proj-lvl">Nv.2</span></div>
+        <div class="panel-bd" id="people"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hd">
+          <strong class="dsp">☕ Lanzamiento Café Frío</strong>
+          <span class="eyebrow" id="floor-state">6 agentes en sus mesas</span>
+        </div>
+        <div class="panel-bd" style="padding:10px">
+          <div class="floor" id="floor"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-hd"><strong class="dsp">Pedidos</strong><span class="eyebrow">web</span></div>
+        <div class="panel-bd">
+          <label class="fld" for="req">¿Qué necesitas?</label>
+          <textarea id="req">Quiero lanzar el café frío en la Roma y la Condesa el próximo mes con presupuesto de 20 mil pesos.</textarea>
+          <label class="fld">Departamentos a usar</label>
+          <div class="chips" id="deps"></div>
+          <label class="fld" for="sup">Supervisor</label>
+          <select id="sup"><option>Don Ramón · Gerente</option></select>
+          <button class="btn" id="run">▶ Poner a trabajar</button>
+          <div class="log" id="log"><div><span class="t">—</span><span>La oficina está lista. Escribe un pedido y ponlos a trabajar.</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ HOJA DE PERSONAJE ══════════ -->
+  <section id="spirits">
+    <div class="sec-hd"><h2>Variantes de agente</h2><p class="eyebrow">mismo cuerpo, distinto color y accesorio</p></div>
+    <div class="panel"><div class="panel-bd row-demo" id="spirits-row" style="gap:18px;justify-content:space-between"></div></div>
+  </section>
+
+  <section id="expresiones">
+    <div class="sec-hd"><h2>Expresiones</h2><p class="eyebrow">4 del contrato + 4 extra</p></div>
+    <div class="panel"><div class="panel-bd row-demo" id="expr-row" style="gap:16px"></div></div>
+  </section>
+
+  <section id="partes">
+    <div class="sec-hd"><h2>Las 3 partes + color</h2><p class="eyebrow">cuerpo → ojos → gorro</p></div>
+    <div class="panel"><div class="panel-bd">
+      <div class="legend" id="legend"></div>
+    </div></div>
+  </section>
+
+  <section id="estados">
+    <div class="sec-hd"><h2>Estados y tamaños</h2><p class="eyebrow">state · size 48 / 96 / 256</p></div>
+    <div class="panel"><div class="panel-bd row-demo" id="states"></div></div>
+  </section>
+
+  <section id="lab">
+    <div class="sec-hd"><h2>Laboratorio 🎲</h2><p class="eyebrow">arma uno y cópialo a seed.ts</p></div>
+    <div class="panel"><div class="panel-bd" style="display:grid;grid-template-columns:minmax(0,280px) minmax(0,1fr);gap:24px;align-items:start">
+      <div style="text-align:center"><div id="lab-preview"></div></div>
+      <div>
+        <div id="lab-rows"></div>
+        <button class="btn" id="dice" style="max-width:200px">🎲 Aleatorio</button>
+        <pre class="snip" id="lab-code"></pre>
+      </div>
+    </div></div>
+  </section>
+
+  <section id="combos">
+    <div class="sec-hd"><h2>Los 64 combos</h2><p class="eyebrow">criterio de aceptación §10</p></div>
+    <div class="panel"><div class="panel-bd"><div class="sheet-grid" id="grid"></div></div></div>
+  </section>
+
+  <footer>
+    Contrato §7 · <code>Avatar { body, eyes, hat, color }</code> — <code>AVATAR_COLORS</code> 6 tonos ·
+    contorno 3px <code>#2B2D42</code> · ojos ≥22% del ancho del cuerpo. Componente real:
+    <code>web/src/components/avatar/parts.tsx</code> + <code>Avatar.tsx</code>.
+  </footer>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+/* ═══════════════ 1. Mascota "Agent Spirit" — mismo trazo que parts.tsx ═══════════════ */
+const SW=7;
+function hexToHsl(hex){const h=hex.replace('#','');const n=h.length===3?h.split('').map(c=>c+c).join(''):h;
+  const r=parseInt(n.slice(0,2),16)/255,g=parseInt(n.slice(2,4),16)/255,b=parseInt(n.slice(4,6),16)/255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let hu=0;
+  if(d){if(mx===r)hu=((g-b)/d)%6;else if(mx===g)hu=(b-r)/d+2;else hu=(r-g)/d+4;}
+  hu=(hu*60+360)%360;const l=(mx+mn)/2;const s=d?d/(1-Math.abs(2*l-1)):0;return [hu,s,l];}
+function hsl(h,s,l){s=Math.min(1,Math.max(0,s));l=Math.min(1,Math.max(0,l));
+  const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
+  const t=h<60?[c,x,0]:h<120?[x,c,0]:h<180?[0,c,x]:h<240?[0,x,c]:h<300?[x,0,c]:[c,0,x];
+  return '#'+t.map(v=>Math.round((v+m)*255).toString(16).padStart(2,'0')).join('');}
+function palette(color){const [h,s,l]=hexToHsl(color||'#FFD93D');
+  if(l<0.34)return{fill:hsl(h,Math.min(s,.16),.30),stroke:hsl(h,Math.min(s,.22),.15),
+    accent:hsl(h,Math.min(s,.14),.20),accentDeep:hsl(h,Math.min(s,.20),.11),
+    ink:'#F6F1E7',cheek:hsl(350,.45,.62),dark:true};
+  const sat=Math.min(.9,Math.max(.42,s*.8));
+  return{fill:hsl(h,sat,.915),stroke:hsl(h,Math.min(.85,sat*1.05),.60),
+    accent:hsl(h,Math.min(.9,sat*1.05),.66),accentDeep:hsl(h,Math.min(.9,sat*1.05),.48),
+    ink:'#2E2A33',cheek:hsl(352,.72,.78),dark:false};}
+
+const GEO={
+  round :{x0:20,x1:108,y0:24,yS:74,yBot:100,top:'dome',ry:44,bumps:3,eyeY:66,eyeDx:18,eyeR:14,cheekY:84,cheekDx:32,hatY:30,hatW:78,bubbleY:14},
+  square:{x0:24,x1:104,y0:28,yS:76,yBot:100,top:'boxy',ry:30,bumps:3,eyeY:68,eyeDx:18,eyeR:14,cheekY:86,cheekDx:30,hatY:34,hatW:72,bubbleY:18},
+  bean  :{x0:14,x1:114,y0:34,yS:78,yBot:100,top:'dome',ry:40,bumps:4,eyeY:70,eyeDx:20,eyeR:14,cheekY:88,cheekDx:36,hatY:40,hatW:84,bubbleY:24},
+  tall  :{x0:34,x1:94, y0:18,yS:76,yBot:104,top:'dome',ry:30,bumps:3,eyeY:60,eyeDx:14,eyeR:12,cheekY:77,cheekDx:22,hatY:24,hatW:56,bubbleY:8}
+};
+const M=GEO;
+function domePath(g){const rx=(g.x1-g.x0)/2;
+  if(g.top==='boxy'){const r=30;return `M ${g.x0} ${g.yS} L ${g.x0} ${g.y0+r} Q ${g.x0} ${g.y0} ${g.x0+r} ${g.y0} L ${g.x1-r} ${g.y0} Q ${g.x1} ${g.y0} ${g.x1} ${g.y0+r} L ${g.x1} ${g.yS} Z`;}
+  return `M ${g.x0} ${g.yS} L ${g.x0} ${g.y0+g.ry} A ${rx} ${g.ry} 0 0 1 ${g.x1} ${g.y0+g.ry} L ${g.x1} ${g.yS} Z`;}
+function skirtPath(g){const w=(g.x1-g.x0)/g.bumps;let d=`M ${g.x0} ${g.yS-6} L ${g.x0} ${g.yBot-4}`;
+  for(let i=0;i<g.bumps;i++){const a=g.x0+i*w,b=a+w;
+    d+=` C ${a+w*.3} ${g.yBot+6} ${b-w*.3} ${g.yBot+6} ${b} ${g.yBot-4}`;}
+  return d+` L ${g.x1} ${g.yS-6} Z`;}
+const union=(shapes,fill,stroke,sw=SW)=>
+  `<g fill="none" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round" stroke-linecap="round">${shapes}</g><g fill="${fill}">${shapes}</g>`;
+
+function bodyOf(key,color,ck){const g=GEO[key],p=palette(color),armY=g.yS+2,armR=key==='tall'?8:10;
+  const shapes=`<circle cx="${g.x0+3}" cy="${armY}" r="${armR}"/><circle cx="${g.x1-3}" cy="${armY}" r="${armR}"/>`+
+    `<path d="${domePath(g)}"/><path d="${skirtPath(g)}"/>`;
+  const gx=g.x0+(g.x1-g.x0)*.3, gy=g.y0+(g.yS-g.y0)*.42;
+  return `<g>${union(shapes,p.fill,p.stroke)}
+    <path d="${skirtPath(g)}" fill="${p.stroke}" opacity="${p.dark?.18:.085}"/>
+    <ellipse cx="${gx}" cy="${gy}" rx="${(g.x1-g.x0)*.13}" ry="${(g.yS-g.y0)*.2}" fill="#fff" opacity="${p.dark?.1:.55}" transform="rotate(-18 ${gx} ${gy})"/>
+    ${ck!==false?`<g opacity=".72"><ellipse cx="${64-g.cheekDx}" cy="${g.cheekY}" rx="8" ry="5" fill="${p.cheek}"/><ellipse cx="${64+g.cheekDx}" cy="${g.cheekY}" rx="8" ry="5" fill="${p.cheek}"/></g>`:''}</g>`;}
+
+const oval=(x,y,rx,ry,ink,flip=1)=>`<g><ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${ink}"/>
+  <circle cx="${x-flip*rx*.3}" cy="${y-ry*.38}" r="${rx*.34}" fill="#fff"/>
+  <circle cx="${x+flip*rx*.32}" cy="${y+ry*.42}" r="${rx*.16}" fill="#fff" opacity=".85"/></g>`;
+const sigEyes=(m,p)=>`<g class="mo-blink" style="transform-origin:64px ${m.eyeY}px">
+  ${oval(64-m.eyeDx,m.eyeY,m.eyeR*.82,m.eyeR*1.06,p.ink)}${oval(64+m.eyeDx,m.eyeY,m.eyeR*.82,m.eyeR*1.06,p.ink)}</g>`;
+const EYE={
+  big:sigEyes,
+  happy:(m,p)=>`<g fill="none" stroke="${p.ink}" stroke-width="${m.eyeR*.46}" stroke-linecap="round">`+
+    [-1,1].map(s=>`<path d="M ${64+s*m.eyeDx-m.eyeR*.8} ${m.eyeY+m.eyeR*.4} Q ${64+s*m.eyeDx} ${m.eyeY-m.eyeR*.72} ${64+s*m.eyeDx+m.eyeR*.8} ${m.eyeY+m.eyeR*.4}"/>`).join('')+'</g>',
+  focused:(m,p)=>'<g>'+[-1,1].map(s=>`<g>
+    <ellipse cx="${64+s*m.eyeDx}" cy="${m.eyeY+1.5}" rx="${m.eyeR*.74}" ry="${m.eyeR*.82}" fill="${p.ink}"/>
+    <circle cx="${64+s*m.eyeDx-s*m.eyeR*.22}" cy="${m.eyeY-m.eyeR*.2}" r="${m.eyeR*.24}" fill="#fff"/>
+    <path d="M ${64+s*m.eyeDx-s*m.eyeR*1.05} ${m.eyeY-m.eyeR*1.25} L ${64+s*m.eyeDx+s*m.eyeR*.85} ${m.eyeY-m.eyeR*.62}" stroke="${p.ink}" stroke-width="${m.eyeR*.36}" stroke-linecap="round" fill="none"/></g>`).join('')+'</g>',
+  star:(m,p)=>`<g class="mo-blink" style="transform-origin:64px ${m.eyeY}px">`+[-1,1].map(s=>{
+    const R=m.eyeR*1.05,k=R*.26,cx=64+s*m.eyeDx,y=m.eyeY;
+    return `<path fill="${p.ink}" d="M ${cx} ${y-R} C ${cx+k} ${y-k} ${cx+k} ${y-k} ${cx+R} ${y} C ${cx+k} ${y+k} ${cx+k} ${y+k} ${cx} ${y+R} C ${cx-k} ${y+k} ${cx-k} ${y+k} ${cx-R} ${y} C ${cx-k} ${y-k} ${cx-k} ${y-k} ${cx} ${y-R} Z"/>`;}).join('')+'</g>',
+  thinking:(m,p)=>`<g>${oval(64-m.eyeDx+3,m.eyeY,m.eyeR*.7,m.eyeR*.92,p.ink,-1)}${oval(64+m.eyeDx+3,m.eyeY,m.eyeR*.7,m.eyeR*.92,p.ink,-1)}</g>`,
+  surprise:(m,p)=>'<g>'+[-1,1].map(s=>`<circle cx="${64+s*m.eyeDx}" cy="${m.eyeY}" r="${m.eyeR*.42}" fill="${p.ink}"/>`).join('')+'</g>',
+  sleepy:(m,p)=>`<g><g fill="none" stroke="${p.ink}" stroke-width="${m.eyeR*.42}" stroke-linecap="round">`+
+    [-1,1].map(s=>`<path d="M ${64+s*m.eyeDx-m.eyeR*.75} ${m.eyeY-m.eyeR*.25} Q ${64+s*m.eyeDx} ${m.eyeY+m.eyeR*.6} ${64+s*m.eyeDx+m.eyeR*.75} ${m.eyeY-m.eyeR*.25}"/>`).join('')+
+    `</g><text x="${64+m.eyeDx+26}" y="${m.eyeY-26}" font-size="17" font-weight="700" fill="${p.ink}" opacity=".75">z</text>
+     <text x="${64+m.eyeDx+37}" y="${m.eyeY-40}" font-size="12" font-weight="700" fill="${p.ink}" opacity=".55">z</text></g>`,
+  glasses:(m,p)=>`<g>${sigEyes(m,p)}<g fill="none" stroke="${p.accentDeep}" stroke-width="3.4" stroke-linecap="round">
+    <circle cx="${64-m.eyeDx}" cy="${m.eyeY}" r="${m.eyeR*1.32}"/><circle cx="${64+m.eyeDx}" cy="${m.eyeY}" r="${m.eyeR*1.32}"/>
+    <path d="M ${64-m.eyeDx+m.eyeR*1.32} ${m.eyeY} L ${64+m.eyeDx-m.eyeR*1.32} ${m.eyeY}"/></g></g>`
+};
+const HAT={
+  none:()=>'',
+  cap:(m,p)=>{const w=m.hatW,y=m.hatY,rx=w/2,ry=w*.38;
+    const shapes=`<path d="M ${64-rx} ${y} A ${rx} ${ry} 0 0 1 ${64+rx} ${y} Z"/>
+      <ellipse cx="64" cy="${y+1}" rx="${rx*1.06}" ry="6.5"/>
+      <path d="M ${64+rx*.2} ${y-3} Q ${64+rx*1.5} ${y-6} ${64+rx*1.62} ${y+4} Q ${64+rx*1.1} ${y+10} ${64+rx*.2} ${y+6} Z"/>
+      <ellipse cx="58" cy="${y-ry-5}" rx="5.5" ry="8" transform="rotate(-24 58 ${y-ry-5})"/>
+      <ellipse cx="70" cy="${y-ry-5}" rx="5.5" ry="8" transform="rotate(24 70 ${y-ry-5})"/>`;
+    return `<g>${union(shapes,p.accent,p.accentDeep,6)}</g>`;},
+  crown:(m,p)=>{const w=m.hatW*.62,y=m.hatY+2,l=64-w/2,r=64+w/2;
+    const shapes=`<path d="M ${l} ${y+4} L ${l} ${y-6} L ${r} ${y-6} L ${r} ${y+4} Z"/>
+      <circle cx="${l}" cy="${y-12}" r="7"/><circle cx="64" cy="${y-18}" r="8"/><circle cx="${r}" cy="${y-12}" r="7"/>`;
+    return `<g>${union(shapes,p.accent,p.accentDeep,6)}</g>`;},
+  antenna:(m,p)=>{const y=m.hatY+6;
+    return `<g><path d="M 64 ${y+4} C 64 ${y-4} 67 ${y-8} 67 ${y-15}" fill="none" stroke="${p.accentDeep}" stroke-width="5" stroke-linecap="round"/>
+      <g class="bulb">${union(`<circle cx="67" cy="${y-21}" r="8"/>`,p.accent,p.accentDeep,6)}</g></g>`;},
+  sprout:(m,p)=>{const y=m.hatY+2;
+    const shapes=`<path d="M 64 ${y+6} L 64 ${y-12}"/>
+      <ellipse cx="54" cy="${y-14}" rx="11" ry="7" transform="rotate(-26 54 ${y-14})"/>
+      <ellipse cx="75" cy="${y-18}" rx="12" ry="7.5" transform="rotate(18 75 ${y-18})"/>`;
+    return `<g>${union(shapes,p.accent,p.accentDeep,6)}</g>`;},
+  headphones:(m,p)=>{const y=m.hatY+10,rx=m.hatW*.56;
+    return `<g><path d="M ${64-rx} ${y+14} A ${rx} ${rx*.92} 0 0 1 ${64+rx} ${y+14}" fill="none" stroke="${p.accentDeep}" stroke-width="7" stroke-linecap="round"/>
+      ${union(`<rect x="${64-rx-8}" y="${y+10}" width="17" height="22" rx="8"/><rect x="${64+rx-9}" y="${y+10}" width="17" height="22" rx="8"/>`,p.accent,p.accentDeep,6)}</g>`;},
+  bow:(m,p)=>{const y=m.hatY-2;
+    const shapes=`<ellipse cx="55" cy="${y}" rx="8" ry="11" transform="rotate(-28 55 ${y})"/>
+      <ellipse cx="73" cy="${y}" rx="8" ry="11" transform="rotate(28 73 ${y})"/><circle cx="64" cy="${y+5}" r="5"/>`;
+    return `<g>${union(shapes,p.accent,p.accentDeep,6)}</g>`;},
+  badge:(m,p)=>{const w=m.hatW,y=m.hatY,rx=w/2,ry=w*.34;
+    return `<g>${union(`<path d="M ${64-rx} ${y} A ${rx} ${ry} 0 0 1 ${64+rx} ${y} Z"/><ellipse cx="64" cy="${y+1}" rx="${rx*1.12}" ry="6"/>`,p.accent,p.accentDeep,6)}
+      <circle cx="64" cy="${y-ry*.55}" r="6" fill="${p.dark?'#F6F1E7':'#fff'}" opacity=".92"/>
+      <circle cx="64" cy="${y-ry*.55}" r="2.4" fill="${p.accentDeep}"/></g>`;}
+};
+const BODIES=['round','square','bean','tall'], EYES=['big','happy','focused','star'], HATS=['none','cap','crown','antenna'];
+const EXTRA_EYES=['thinking','surprise','sleepy','glasses'], EXTRA_HATS=['sprout','headphones','bow','badge'];
+const COLORS=['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#B892FF','#FF9F1C'];
+const LABELS={body:{round:'Redondo',square:'Cuadrado',bean:'Frijol',tall:'Alto'},
+  eyes:{big:'Normal',happy:'Feliz',focused:'Trabajando',star:'Destello',thinking:'Pensando',surprise:'Sorpresa',sleepy:'Dormido',glasses:'Lentes'},
+  hat:{none:'Sin gorro',cap:'Gorrito',crown:'Corona',antenna:'Antena',sprout:'Brote',headphones:'Audífonos',bow:'Moño',badge:'Gorra con placa'}};
+const SPIRITS=[
+  {name:'General',    body:'round', eyes:'big',    hat:'cap',       color:'#FFD93D'},
+  {name:'Creativo',   body:'round', eyes:'happy',  hat:'bow',       color:'#FF6B6B'},
+  {name:'Analista',   body:'bean',  eyes:'glasses',hat:'antenna',   color:'#4D96FF'},
+  {name:'Organizador',body:'square',eyes:'big',    hat:'sprout',    color:'#6BCB77'},
+  {name:'Técnico',    body:'round', eyes:'big',    hat:'headphones',color:'#B892FF'},
+  {name:'Supervisor', body:'round', eyes:'big',    hat:'badge',     color:'#3A3D4D'}
+];
+
+/** Avatar completo → HTML string. */
+function avatar(a,size=96,state='idle',opt={}){
+  const b=GEO[a.body]?a.body:'round';
+  const p=palette(a.color);
+  const eyesFn=EYE[a.eyes]||EYE.big, hatFn=HAT[a.hat]||HAT.none;
+  const m=GEO[b], px=u=>u/128*size, small=size<72;
+  return `<div class="mo s-${state}" style="width:${size}px">
+    ${state==='working'?`<div class="bubble" style="top:${px(m.bubbleY)-size*.12}px"><i></i><i></i><i></i></div>`:''}
+    ${state==='done'?`<div class="spark" style="top:${px(m.bubbleY)}px;right:${px(14)}px;font-size:${size*.22}px">✦</div>`:''}
+    ${opt.level&&small?`<div class="mo-badge">${opt.level}</div>`:''}
+    <svg width="${size}" height="${size}" viewBox="0 0 128 128" aria-hidden="true">
+      <g class="mo-sprite">${bodyOf(b,a.color,opt.cheeks)}${eyesFn(m,p)}${hatFn(m,p)}</g></svg>
+    <div class="mo-shadow" style="width:${size*.4}px;height:${size*.06}px"></div>
+    ${opt.level&&!small?`<div class="lvl" style="font-size:${size*.17}px">${[1,2,3,4,5].map(i=>`<span class="${i<=opt.level?'on':''}">‹</span>`).join('')}</div>`:''}
+    ${opt.name&&!small?`<div class="lbl" style="font-size:${size*.14}px;font-weight:800">${opt.name}</div>`:''}
+  </div>`;
+}
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const randomAvatar=()=>({body:rnd(BODIES),eyes:rnd(EYES),hat:rnd(HATS),color:rnd(COLORS)});
+
+/* ═══════════════ 2. Seed §16 ═══════════════ */
+const LEVELS=[0,50,150,300,500], levelFor=xp=>LEVELS.filter(t=>xp>=t).length;
+const areas=[
+  {id:'inv',name:'Investigación',emoji:'🔎',color:'#4D96FF',xp:40,rules:'Toda afirmación lleva fuente o se marca «por confirmar».'},
+  {id:'mkt',name:'Marketing',emoji:'🎨',color:'#FF6B6B',xp:25,rules:'Tono cercano, español de México. Un mensaje principal.'},
+  {id:'ven',name:'Ventas',emoji:'💰',color:'#6BCB77',xp:15,rules:'Siempre números: precio, meta semanal, canal.'}
+];
+const agents=[
+  {id:'ramon',name:'Don Ramón',role:'Gerente',area:null,sup:true,xp:280,av:{body:'round',eyes:'focused',hat:'badge',color:'#FFD93D'}},
+  {id:'lupita',name:'Lupita',role:'Investigadora de mercado',area:'inv',xp:145,av:{body:'bean',eyes:'glasses',hat:'antenna',color:'#4D96FF'}},
+  {id:'beto',name:'Beto',role:'Analista de competencia',area:'inv',xp:60,av:{body:'square',eyes:'focused',hat:'headphones',color:'#B892FF'}},
+  {id:'monica',name:'Mónica',role:'Redactora creativa',area:'mkt',xp:95,av:{body:'round',eyes:'happy',hat:'bow',color:'#FF6B6B'}},
+  {id:'diego',name:'Diego',role:'Diseñador de campaña',area:'mkt',xp:30,av:{body:'tall',eyes:'star',hat:'sprout',color:'#FF9F1C'}},
+  {id:'sofia',name:'Sofía',role:'Estratega de ventas',area:'ven',xp:45,av:{body:'bean',eyes:'happy',hat:'cap',color:'#6BCB77'}}
+];
+agents.forEach(a=>a.state='idle');
+const plano=[
+  {t:'Investigar mercado',agent:'lupita',out:'5 hallazgos: (1) el café frío crece 18% anual en CDMX (fuente: sector cafetero, 2025). (2) Público 24–38, oficina híbrida. (3) Pico de consumo 15:00–18:00. (4) Roma/Condesa concentran 40 cafeterías de especialidad. (5) Precio esperado $55–$75. Supuse que: el lanzamiento es en tienda física + reparto.'},
+  {t:'Analizar competencia',agent:'beto',out:'Tabla · 3 competidores | Cielito Querido $48, canal tienda, propuesta «mexicano y rápido» | Blend Station $72, canal tienda+app, propuesta «especialidad» | Starbucks $79, canal masivo. Hueco: $58–$62 con envase retornable. Precios por confirmar.'},
+  {t:'Redactar campaña',agent:'monica',out:'Mensaje principal: «Tu tarde, en frío.» Variantes: (1) «El bajón de las 5 tiene solución fría.» (2) «Cold brew de barrio, no de cadena.» (3) «Frío, cerca y a $59.» Tono cercano, sin anglicismos.'},
+  {t:'Plan de ventas',agent:'sofia',out:'Precio $59. Meta semanal 420 vasos (60/día). Canales: mostrador 60%, reparto 25%, eventos de barrio 15%. Presupuesto $20,000 → $9,000 producción, $7,000 pauta local, $4,000 activaciones.'}
+];
+const finalResult='Plan de lanzamiento · Café Frío — Roma/Condesa\n\nMERCADO — categoría al alza (+18% anual), público 24–38 con consumo pico 15:00–18:00.\nCOMPETENCIA — hueco de precio entre $58 y $62; ninguna marca usa envase retornable.\nCAMPAÑA — mensaje «Tu tarde, en frío.» con 3 variantes para redes.\nVENTAS — $59 por vaso, meta 420/semana, presupuesto $20,000 repartido 45/35/20.\n\nPor confirmar: precios de competencia y permisos para activaciones de barrio.';
+
+/* ═══════════════ 3. Render: panel + piso ═══════════════ */
+const $=s=>document.querySelector(s), el=(h)=>{const d=document.createElement('div');d.innerHTML=h.trim();return d.firstChild;};
+const STATE_LBL={idle:['libre','st-libre'],walking:['llegando','st-list'],working:['trabajando','st-trab'],done:['terminó','st-list']};
+
+function renderPeople(){
+  const box=$('#people'); box.innerHTML='';
+  const groups=[{id:null,name:'Dirección',emoji:'⭐',color:'#FFD93D'},...areas];
+  groups.forEach(g=>{
+    const list=agents.filter(a=>a.area===g.id).sort((x,y)=>y.xp-x.xp);
+    if(!list.length)return;
+    const wrap=el(`<div class="area-group"><div class="area-head"><i class="dot" style="background:${g.color}"></i>${g.emoji} ${g.name}</div></div>`);
+    list.forEach(a=>{
+      const lv=levelFor(a.xp), lo=LEVELS[lv-1], hi=LEVELS[lv]??LEVELS[4], pct=Math.min(100,(a.xp-lo)/((hi-lo)||1)*100);
+      const [txt,cls]=STATE_LBL[a.state];
+      const row=el(`<div class="person" data-a="${a.id}">
+        <div>${avatar(a.av,44,a.state==='working'?'idle':'idle',{level:lv})}</div>
+        <div style="flex:1;min-width:0">
+          <div class="nm">${a.name} <span class="state-chip ${cls}">${txt}</span></div>
+          <div class="rl">${a.role}</div>
+          <div class="xpbar"><i style="width:${pct}%"></i></div>
+        </div></div>`);
+      wrap.appendChild(row);
+    });
+    box.appendChild(wrap);
+  });
+  const projXp=agents.reduce((s,a)=>s+a.xp,0);
+  $('#proj-lvl').textContent='Proyecto Nv.'+levelFor(Math.round(projXp/6));
+}
+
+/* auto-layout §9.2, en % del lienzo 960×540 */
+const DESK={w:8.5,h:6.5};
+function layout(){
+  const pos={}; // agentId → {x,y} en %
+  pos.ramon={x:50,y:8};
+  const zones=[];
+  areas.forEach((ar,i)=>{
+    const zw=29, gap=3.6, zx=gap+i*(zw+gap), zy=26, zh=38;
+    zones.push({...ar,x:zx,y:zy,w:zw,h:zh});
+    agents.filter(a=>a.area===ar.id).forEach((a,j)=>{
+      pos[a.id]={x:zx+5+(j%2)*13, y:zy+13+Math.floor(j/2)*18};
+    });
+  });
+  return {pos,zones};
+}
+const L=layout();
+function renderFloor(){
+  const f=$('#floor'); f.innerHTML='';
+  f.appendChild(el(`<div class="zone" style="left:31%;top:2%;width:38%;height:19%;border-color:#FFD93D;background:rgba(255,217,61,.13)">
+      <span class="zone-lbl">⭐ Dirección</span></div>`));
+  L.zones.forEach(z=>{
+    const lv=levelFor(z.xp);
+    f.appendChild(el(`<div class="zone" id="z-${z.id}" style="left:${z.x}%;top:${z.y}%;width:${z.w}%;height:${z.h}%;border-color:${z.color};background:${z.color}26">
+      <span class="zone-lbl" style="color:${z.color}">${z.emoji} ${z.name} · Nv.${lv}${lv>=3?' ⭐':''}</span></div>`));
+  });
+  agents.forEach(a=>{
+    const p=L.pos[a.id];
+    f.appendChild(el(`<div class="desk" style="left:${p.x-DESK.w/2}%;top:${p.y+12}%;width:${DESK.w}%;height:${DESK.h}%" id="d-${a.id}"></div>`));
+    const pawn=el(`<div class="pawn" id="p-${a.id}" style="left:5%;top:78%">
+        <div id="av-${a.id}">${avatar(a.av,52,'walking')}</div>
+        <div class="lbl">${a.name}</div></div>`);
+    f.appendChild(pawn);
+  });
+  f.appendChild(el('<div class="door" style="left:1.5%;bottom:19%">🚪</div>'));
+  f.appendChild(el('<div class="paper" id="paper">📄</div>'));
+  f.appendChild(el('<div class="outbox" id="outbox"><span class="ttl">📬 Entregables</span></div>'));
+  // llegada escalonada
+  const order=[...agents].sort((x,y)=>(y.sup?1:0)-(x.sup?1:0));
+  order.forEach((a,i)=>setTimeout(()=>{
+    const p=L.pos[a.id], node=document.getElementById('p-'+a.id);
+    if(!node)return;
+    node.style.left=p.x+'%'; node.style.top=p.y+'%';
+    setTimeout(()=>setState(a.id,'idle'),1150);
+  },240+i*300));
+}
+function setState(id,st){
+  const a=agents.find(x=>x.id===id); a.state=st;
+  const holder=document.getElementById('av-'+id);
+  if(holder) holder.innerHTML=avatar(a.av,52,st);
+  const desk=document.getElementById('d-'+id); if(desk) desk.classList.toggle('hot',st==='working');
+  renderPeople();
+}
+function movePaper(from,to){
+  const p=$('#paper'); const a=from?L.pos[from]:{x:46,y:10}, b=to?L.pos[to]:{x:78,y:88};
+  p.style.opacity='1'; p.style.left=a.x+'%'; p.style.top=a.y+'%';
+  requestAnimationFrame(()=>{p.style.left=b.x+'%';p.style.top=b.y+'%';});
+  setTimeout(()=>p.style.opacity='0',900);
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function log(icon,txt){
+  const t=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+  $('#log').prepend(el(`<div><span class="t">${t}</span><span>${icon} ${txt}</span></div>`));
+}
+function toast(txt,lvl){
+  const n=el(`<div class="toast${lvl?' lvl':''}">${txt}</div>`); $('#toasts').appendChild(n);
+  setTimeout(()=>n.remove(),3200);
+}
+function addXp(a,amount){
+  const before=levelFor(a.xp); a.xp+=amount; const after=levelFor(a.xp);
+  toast(`+${amount} XP ${a.name}`);
+  if(after>before){setTimeout(()=>toast(`🎉 ¡${a.name} subió a Nv.${after}!`,true),500);}
+}
+
+let running=false;
+async function run(){
+  if(running)return; running=true;
+  const btn=$('#run'); btn.disabled=true; btn.textContent='La oficina está trabajando…';
+  $('#outbox').querySelectorAll('.deliver').forEach(n=>n.remove());
+  const sup=agents.find(a=>a.sup);
+  log('📋',`${sup.name} recibió el pedido y lo repartió.`);
+  let prev=null;
+  for(const step of plano){
+    const a=agents.find(x=>x.id===step.agent), ar=areas.find(z=>z.id===a.area);
+    movePaper(prev,a.id); await sleep(800);
+    log('📋',`${sup.name} asignó «${step.t}» a ${a.name}.`);
+    setState(a.id,'working'); await sleep(1500+Math.random()*900);
+    setState(a.id,'done'); addXp(a,10); ar.xp+=5;
+    log('✅',`${a.name} terminó «${step.t}».`);
+    await sleep(500); setState(a.id,'idle'); prev=a.id;
+  }
+  movePaper(prev,null); await sleep(800);
+  const card=el(`<div class="deliver" title="Clic para ver el entregable">📄 Plan de lanzamiento · Café Frío</div>`);
+  card.onclick=()=>alert(finalResult);
+  $('#outbox').appendChild(card);
+  log('🏁',`${sup.name} consolidó el entregable: Plan de lanzamiento.`);
+  toast('+25 XP proyecto');
+  renderFloor2(); renderPeople();
+  btn.disabled=false; btn.textContent='▶ Poner a trabajar'; running=false;
+}
+function renderFloor2(){ // refresca sólo etiquetas de nivel de área
+  L.zones.forEach(z=>{const ar=areas.find(a=>a.id===z.id),lv=levelFor(ar.xp);
+    const n=document.querySelector(`#z-${z.id} .zone-lbl`); if(n)n.textContent=`${ar.emoji} ${ar.name} · Nv.${lv}${lv>=3?' ⭐':''}`;});
+}
+
+/* ═══════════════ 4. Hoja de personaje ═══════════════ */
+function renderSpirits(){
+  const box=$('#spirits-row'); box.innerHTML='';
+  SPIRITS.forEach(sp=>box.appendChild(el(`<figure>${avatar({body:sp.body,eyes:sp.eyes,hat:sp.hat,color:sp.color},116,'idle')}
+    <figcaption>${sp.name}<br><span style="font-weight:400;color:var(--ink-faint);font-size:10.5px">${sp.body} · ${sp.hat}</span></figcaption></figure>`)));
+}
+function renderExpressions(){
+  const box=$('#expr-row'); box.innerHTML='';
+  [...EYES,...EXTRA_EYES].forEach(e=>box.appendChild(el(`<figure>${avatar({body:'round',eyes:e,hat:'cap',color:'#FFD93D'},96,'idle')}
+    <figcaption>${LABELS.eyes[e]}<br><code style="font-weight:400;color:var(--ink-faint);font-size:10px">${e}</code></figcaption></figure>`)));
+}
+function renderLegend(){
+  const box=$('#legend'); box.innerHTML='';
+  const groups=[['Cuerpo (4)','body',BODIES],['Ojos (4)','eyes',EYES],['Gorro (4)','hat',HATS],
+                ['Accesorios extra','hat',EXTRA_HATS]];
+  groups.forEach(([title,kind,list])=>{
+    const col=el(`<div><p class="eyebrow" style="margin:0 0 8px">${title}</p></div>`);
+    list.forEach(v=>{
+      const a=kind==='body'?{body:v,eyes:'big',hat:'none',color:'#4D96FF'}
+            :kind==='eyes'?{body:'round',eyes:v,hat:'none',color:'#FFD93D'}
+            :{body:'round',eyes:'big',hat:v,color:'#6BCB77'};
+      col.appendChild(el(`<div class="item">${avatar(a,48)}<span>${LABELS[kind][v]}<br><code style="font-size:11px;color:var(--ink-faint)">${v}</code></span></div>`));
+    });
+    box.appendChild(col);
+  });
+}
+function renderStates(){
+  const box=$('#states'); box.innerHTML='';
+  [['idle','en su mesa'],['walking','llegando'],['working','trabajando'],['done','terminó']].forEach(([s,d])=>
+    box.appendChild(el(`<figure>${avatar({body:'round',eyes:'big',hat:'cap',color:'#FFD93D'},96,s,{level:2})}
+      <figcaption>${s}<br><span style="font-weight:400;color:var(--ink-faint)">${d}</span></figcaption></figure>`)));
+  [48,96,256].forEach(sz=>box.appendChild(el(`<figure>${avatar({body:'bean',eyes:'glasses',hat:'antenna',color:'#4D96FF'},sz,'idle',{level:3})}
+    <figcaption>${sz} px</figcaption></figure>`)));
+}
+let lab={body:'bean',eyes:'big',hat:'cap',color:'#4D96FF'};
+function renderLab(){
+  $('#lab-preview').innerHTML=avatar(lab,232,'idle',{level:3});
+  const rows=$('#lab-rows'); rows.innerHTML='';
+  [['Cuerpo','body',BODIES],['Ojos','eyes',EYES],['Gorro','hat',HATS],
+   ['Ojos +','eyes',EXTRA_EYES],['Gorro +','hat',EXTRA_HATS]].forEach(([t,kind,list])=>{
+    const r=el(`<div class="lab"><span>${t}</span><div style="display:flex;gap:8px;flex-wrap:wrap"></div></div>`);
+    const holder=r.lastElementChild;
+    list.forEach(v=>{
+      const a=kind==='body'?{...lab,body:v}:kind==='eyes'?{...lab,eyes:v}:{...lab,hat:v};
+      const b=el(`<button class="opt ${lab[kind]===v?'on':''}" title="${LABELS[kind][v]}">${avatar(a,38,'none',{cheeks:false})}</button>`);
+      b.onclick=()=>{lab[kind]=v;renderLab();}; holder.appendChild(b);
+    });
+    rows.appendChild(r);
+  });
+  const cr=el(`<div class="lab"><span>Color</span><div style="display:flex;gap:8px;flex-wrap:wrap"></div></div>`);
+  COLORS.forEach(c=>{const b=el(`<button class="swatch ${lab.color===c?'on':''}" style="background:${c}" aria-label="${c}"></button>`);
+    b.onclick=()=>{lab.color=c;renderLab();}; cr.lastElementChild.appendChild(b);});
+  rows.appendChild(cr);
+  $('#lab-code').textContent=`avatar: { body: '${lab.body}', eyes: '${lab.eyes}', hat: '${lab.hat}', color: '${lab.color}' }`;
+}
+function renderGrid(){
+  const g=$('#grid'); g.innerHTML=''; let i=0;
+  BODIES.forEach(b=>EYES.forEach(e=>HATS.forEach(h=>{
+    const color=COLORS[i++%COLORS.length];
+    g.appendChild(el(`<div class="combo">${avatar({body:b,eyes:e,hat:h,color},80)}<code>${b}/${e}/${h}</code></div>`));
+  })));
+}
+function renderDeps(){
+  const d=$('#deps'); d.innerHTML='';
+  areas.forEach(a=>{const c=el(`<button class="chip on">${a.emoji} ${a.name}</button>`);
+    c.onclick=()=>c.classList.toggle('on'); d.appendChild(c);});
+}
+
+/* boot */
+renderPeople(); renderFloor(); renderDeps(); renderSpirits(); renderExpressions(); renderLegend(); renderStates(); renderLab(); renderGrid();
+$('#run').onclick=run;
+$('#dice').onclick=()=>{lab=randomAvatar();renderLab();};
+$('#people').addEventListener('click',e=>{
+  const row=e.target.closest('.person'); if(!row)return;
+  document.querySelectorAll('.person').forEach(p=>p.classList.remove('sel'));
+  row.classList.add('sel');
+  const a=agents.find(x=>x.id===row.dataset.a);
+  $('#req').focus(); log('👆',`Seleccionaste a ${a.name} — ${a.role}.`);
+});
+</script>
