@@ -1,6 +1,7 @@
 import { createServer, type Server } from 'node:http';
 import type { ConversationService } from '../application/conversation-service.js';
 import type { OfficeCoordinationService } from '../application/office-coordination-service.js';
+import type { OfficeRegistry } from '../application/office-registry.js';
 import { ValidationError } from '../core/errors.js';
 import {
   parseCreateAgentRequest,
@@ -20,6 +21,7 @@ export interface Logger {
 export interface ApiServerOptions {
   conversations: ConversationService;
   office?: OfficeCoordinationService;
+  offices?: OfficeRegistry;
   allowedOrigin: string;
   maxBodyBytes: number;
   logger?: Logger;
@@ -43,6 +45,7 @@ function decodeConversationId(encodedId: string): string {
 export function createApiServer({
   conversations,
   office,
+  offices,
   allowedOrigin,
   maxBodyBytes,
   logger = console,
@@ -56,9 +59,25 @@ export function createApiServer({
     try {
       const url = new URL(request.url ?? '/', 'http://localhost');
 
-      const historyRoute = url.pathname.match(/^\/api\/chats\/([^/]+)\/messages$/);
+      if (offices && request.method === 'GET' && url.pathname === '/api/offices') {
+        sendJson(response, 200, { offices: offices.list(), defaultOfficeId: offices.defaultOfficeId }, allowedOrigin);
+        return;
+      }
+      if (offices && request.method === 'POST' && url.pathname === '/api/offices') {
+        const context = offices.create(await readJsonBody(request, maxBodyBytes));
+        sendJson(response, 201, { office: context.metadata }, allowedOrigin);
+        return;
+      }
+
+      const scopedRoute = offices ? url.pathname.match(/^\/api\/offices\/([^/]+)(\/.*)$/) : null;
+      const scopedContext = scopedRoute?.[1] ? offices!.get(decodeConversationId(scopedRoute[1])) : null;
+      const scopedPath = scopedRoute?.[2];
+      const routeConversations = scopedContext?.conversations ?? conversations;
+      const routeOffice = scopedContext?.office ?? office;
+
+      const historyRoute = (scopedPath ?? url.pathname).match(/^\/(?:api\/)?chats\/([^/]+)\/messages$/);
       if (request.method === 'GET' && historyRoute?.[1]) {
-        const conversation = conversations.getConversation(decodeConversationId(historyRoute[1]));
+        const conversation = routeConversations.getConversation(decodeConversationId(historyRoute[1]));
         sendJson(response, 200, {
           messages: conversation.messages.filter((message) => message.role !== 'system').map((message) => ({
             role: message.role === 'assistant' ? 'agent' : 'user', text: message.content,
@@ -67,23 +86,23 @@ export function createApiServer({
         }, allowedOrigin);
         return;
       }
-      if (office && request.method === 'GET' && url.pathname === '/api/office') {
-        sendJson(response, 200, office.getSnapshot(), allowedOrigin);
+      if (routeOffice && request.method === 'GET' && (scopedPath ?? url.pathname) === (scopedPath ? '/office' : '/api/office')) {
+        sendJson(response, 200, routeOffice.getSnapshot(), allowedOrigin);
         return;
       }
-      if (office && request.method === 'GET' && url.pathname === '/api/communications') {
-        sendJson(response, 200, { communications: office.getCommunications(url.searchParams.get('bossId') ?? undefined, url.searchParams.get('subordinateId') ?? undefined) }, allowedOrigin);
+      if (routeOffice && request.method === 'GET' && (scopedPath ?? url.pathname) === (scopedPath ? '/communications' : '/api/communications')) {
+        sendJson(response, 200, { communications: routeOffice.getCommunications(url.searchParams.get('bossId') ?? undefined, url.searchParams.get('subordinateId') ?? undefined) }, allowedOrigin);
         return;
       }
-      if (office && request.method === 'PUT' && url.pathname === '/api/office/tree') {
-        office.setTree(await readJsonBody(request, maxBodyBytes));
-        sendJson(response, 200, office.getSnapshot(), allowedOrigin);
+      if (routeOffice && request.method === 'PUT' && (scopedPath ?? url.pathname) === (scopedPath ? '/office/tree' : '/api/office/tree')) {
+        routeOffice.setTree(await readJsonBody(request, maxBodyBytes));
+        sendJson(response, 200, routeOffice.getSnapshot(), allowedOrigin);
         return;
       }
 
-      if (request.method === 'POST' && url.pathname === '/api/chats') {
+      if (request.method === 'POST' && (scopedPath ?? url.pathname) === (scopedPath ? '/chats' : '/api/chats')) {
         const profile = parseCreateAgentRequest(await readJsonBody(request, maxBodyBytes));
-        const conversationId = conversations.createConversation(profile);
+        const conversationId = routeConversations.createConversation(profile);
         const body: CreateAgentResponse = {
           allowed: true,
           agent: { id: conversationId, profile },
@@ -97,13 +116,13 @@ export function createApiServer({
         return;
       }
 
-      const messageRoute = url.pathname.match(/^\/api\/message\/([^/]+)$/);
+      const messageRoute = (scopedPath ?? url.pathname).match(/^\/(?:api\/)?message\/([^/]+)$/);
       if (request.method === 'POST' && messageRoute?.[1]) {
         const conversationId = decodeConversationId(messageRoute[1]);
         const payload = await readJsonBody(request, maxBodyBytes);
-        const result = office
-          ? await office.sendMessage(conversationId, messageFromPayload(payload))
-          : { reply: await conversations.sendMessage(conversationId, messageFromPayload(payload)) };
+        const result = routeOffice
+          ? await routeOffice.sendMessage(conversationId, messageFromPayload(payload))
+          : { reply: await routeConversations.sendMessage(conversationId, messageFromPayload(payload)) };
         sendJson(response, 200, { threadId: conversationId, ...result }, allowedOrigin);
         return;
       }

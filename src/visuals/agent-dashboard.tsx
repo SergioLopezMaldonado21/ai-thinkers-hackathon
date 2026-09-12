@@ -48,6 +48,15 @@ export function saveAgentAvatar(agentId: string, avatar: AvatarSpec): void {
   catch { /* Keep the chosen appearance in this session when storage is unavailable. */ }
 }
 
+/** Preserves pre-office avatar preferences when the original office becomes `default`. */
+export function migrateAgentAvatar(sourceAgentId: string, targetAgentId: string): void {
+  try {
+    if (localStorage.getItem(avatarKey(targetAgentId)) !== null) return;
+    const stored: unknown = JSON.parse(localStorage.getItem(avatarKey(sourceAgentId)) ?? 'null');
+    if (validAvatar(stored)) saveAgentAvatar(targetAgentId, stored);
+  } catch { /* Invalid or unavailable storage falls back to a stable generated avatar. */ }
+}
+
 export interface AgentAvatarOptions {
   agentId: string;
   name?: string;
@@ -108,6 +117,7 @@ export function mountAvatarPicker(host: HTMLElement, initial?: AvatarSpec) {
 
 export interface DashboardAgent {
   id: string;
+  avatarKey?: string;
   profile: {
     name: string;
     position: string;
@@ -193,7 +203,7 @@ function AgentDashboard({ snapshot, actions }: { snapshot: AgentDashboardSnapsho
       {visibleAgents.map((agent) => {
         const active = activeAgentIds.has(agent.id);
         const isRoot = rootId === agent.id;
-        const avatar = getAgentAvatar(agent.id);
+        const avatar = getAgentAvatar(agent.avatarKey ?? agent.id);
         const bossId = realConnections.find((edge) => edge.subordinateId === agent.id)?.bossId;
         const boss = agents.find((item) => item.id === bossId);
         return <button key={agent.id} className={`ad-agent-card${isRoot ? ' ad-root-card' : ''}`}

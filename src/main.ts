@@ -1,7 +1,7 @@
 import './style.css';
 import { ConversationStore, type Conversation } from './conversation-store';
 import { createCommunicationAudit } from './communication-audit';
-import { mountAgentAvatar, mountAvatarPicker, mountAgentDashboard, saveAgentAvatar, createAgentAvatarElement } from './visuals/agent-dashboard';
+import { mountAgentAvatar, mountAvatarPicker, mountAgentDashboard, saveAgentAvatar, migrateAgentAvatar, createAgentAvatarElement } from './visuals/agent-dashboard';
 import { createChatExperience } from './visuals/chat-experience';
 
 type OperationalRole =
@@ -22,6 +22,7 @@ type AgentProfile = {
 };
 type CreatedAgent = { id: string; profile: AgentProfile };
 type MessageResponse = { threadId: string; reply: string };
+type OfficeMetadata = { id: string; name: string; emoji: string; description: string; createdAt: string };
 type AgentConnection = { id: string; bossId: string; subordinateId: string };
 type OfficeSnapshot = {
   agents: CreatedAgent[];
@@ -60,6 +61,13 @@ const closeChat = document.querySelector<HTMLButtonElement>('#close-chat')!;
 const auditPairSelect = document.querySelector<HTMLSelectElement>('#audit-pair')!;
 const auditPairButton = document.querySelector<HTMLButtonElement>('#audit-pair-open')!;
 const officeStatus = document.querySelector<HTMLElement>('#office-status')!;
+const officeSelect = document.querySelector<HTMLSelectElement>('#office-select')!;
+const officeName = document.querySelector<HTMLElement>('#office-name')!;
+const createOfficeButton = document.querySelector<HTMLButtonElement>('#create-office')!;
+const officeDialog = document.querySelector<HTMLDialogElement>('#office-dialog')!;
+const officeForm = document.querySelector<HTMLFormElement>('#office-form')!;
+const officeFormError = document.querySelector<HTMLElement>('#office-form-error')!;
+const submitOfficeButton = document.querySelector<HTMLButtonElement>('#submit-office')!;
 
 const conversations = new ConversationStore();
 const agentNodes = new Map<string, HTMLButtonElement>();
@@ -86,7 +94,11 @@ let activePairs = new Set<string>();
 let pairOptionsSignature = '';
 let pollTimer: ReturnType<typeof setTimeout> | undefined;
 let pollInFlight = false;
+let pollController: AbortController | null = null;
 let pageStopped = false;
+let officeRevision = 0;
+let activeOfficeId: string | null = null;
+let offices: OfficeMetadata[] = [];
 const communicationAudit = createCommunicationAudit();
 const historiesLoading = new Set<string>();
 const personalHistoryPending = new Set<string>();
@@ -97,8 +109,16 @@ const dashboard = mountAgentDashboard(document.querySelector<HTMLElement>('#agen
 const chatExperience = createChatExperience({
   panel: chatPanel, messages: messagesElement, input: messageInput, getConversation,
   onSelectAgent: openConversation, onCreateAgent: openCreateAgentDialog, onClose: closeConversation,
-  createAvatar: (id, name) => createAgentAvatarElement(id, name, 40),
+  createAvatar: (id, name) => createAgentAvatarElement(visualAgentId(id), name, 40),
 });
+
+function visualAgentId(agentId: string) {
+  return `${activeOfficeId ?? 'legacy'}:${agentId}`;
+}
+
+function apiPath(path: string, officeId = activeOfficeId) {
+  return officeId ? `/api/offices/${encodeURIComponent(officeId)}${path}` : `/api${path}`;
+}
 
 function updateChatExperience() {
   chatExperience.update({
@@ -110,12 +130,13 @@ function updateChatExperience() {
 
 function updateVisuals() {
   dashboard.update({
-    agents: [...agentCatalog.values()], activeAgentIds, connections: agentConnections,
+    agents: [...agentCatalog.values()].map((agent) => ({ ...agent, avatarKey: visualAgentId(agent.id) })), activeAgentIds, connections: agentConnections,
     rootId: rootAgentId, ready: officeReady, createPending: agentCreationPending,
   });
   updateChatExperience();
   document.querySelector<HTMLElement>('#workspace-status')!.textContent = officeStatus.textContent;
   document.querySelector<HTMLElement>('.canvas-copy')!.hidden = agentNodes.size > 0;
+  officeSelect.disabled = offices.length < 2 || treeSaving || agentCreationPending;
 }
 
 function selectView(view: string) {
@@ -127,6 +148,116 @@ function selectView(view: string) {
     else button.removeAttribute('aria-current');
   });
   if (!isDashboard) requestConnectionRender();
+}
+
+function renderOfficeOptions() {
+  officeSelect.replaceChildren(...offices.map((office) => {
+    const option = document.createElement('option');
+    option.value = office.id;
+    option.textContent = `${office.emoji} ${office.name}`;
+    return option;
+  }));
+  if (activeOfficeId) officeSelect.value = activeOfficeId;
+  officeSelect.disabled = offices.length < 2;
+  const current = offices.find((office) => office.id === activeOfficeId);
+  officeName.textContent = current ? `${current.emoji} ${current.name}` : 'Mi oficina';
+  document.title = `${current?.name ?? 'Mi oficina'} · MiniOficina`;
+}
+
+function resetOfficeView() {
+  closeConversation();
+  communicationAudit.close();
+  for (const [id, node] of agentNodes) {
+    nodeAvatars.get(id)?.destroy();
+    node.remove();
+  }
+  agentNodes.clear();
+  nodeAvatars.clear();
+  agentCatalog.clear();
+  agentConnections.splice(0);
+  activeAgentIds.clear();
+  activePairs.clear();
+  personalHistoryPending.clear();
+  historiesLoading.clear();
+  historyErrors.clear();
+  rootAgentId = null;
+  selectedAgentId = null;
+  connectionDraftBossId = null;
+  connectionMode = false;
+  officeReady = false;
+  totalAgents = 0;
+  spawnIndex = 0;
+  pairOptionsSignature = '';
+  updateCount();
+  updateConnectionControls();
+  updateAuditChoices();
+  communicationAudit.update({ agents: [], communications: [] });
+  officeStatus.textContent = 'Conectando con la oficina…';
+  updateVisuals();
+  requestConnectionRender();
+}
+
+function switchOffice(officeId: string) {
+  if (!offices.some((office) => office.id === officeId) || officeId === activeOfficeId) return;
+  officeRevision += 1;
+  pollController?.abort();
+  pollController = null;
+  pollInFlight = false;
+  clearTimeout(pollTimer);
+  activeOfficeId = officeId;
+  try { localStorage.setItem('mini-oficina:active-office', officeId); } catch { /* URL state still works. */ }
+  resetOfficeView();
+  renderOfficeOptions();
+  void pollOffice();
+}
+
+async function initializeOffices() {
+  try {
+    const response = await fetch('/api/offices', { cache: 'no-store' });
+    if (!response.ok) throw new Error('API multi-oficina no disponible');
+    const result = await response.json() as { offices: OfficeMetadata[]; defaultOfficeId: string };
+    offices = result.offices;
+    let stored = '';
+    try { stored = localStorage.getItem('mini-oficina:active-office') ?? ''; } catch { /* Use default. */ }
+    activeOfficeId = offices.some((office) => office.id === stored) ? stored : result.defaultOfficeId;
+  } catch {
+    // Compatibility with an older or intercepted backend keeps the original office usable.
+    offices = [{ id: 'legacy', name: 'Mi oficina', emoji: '🏢', description: '', createdAt: '' }];
+    activeOfficeId = null;
+  }
+  renderOfficeOptions();
+  resetOfficeView();
+  void pollOffice();
+}
+
+async function createOffice(event: SubmitEvent) {
+  event.preventDefault();
+  if (!officeForm.reportValidity()) return;
+  const formData = new FormData(officeForm);
+  submitOfficeButton.disabled = true;
+  officeFormError.textContent = '';
+  try {
+    const response = await fetch('/api/offices', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: String(formData.get('name') ?? '').trim(),
+        emoji: String(formData.get('emoji') ?? '').trim(),
+        description: String(formData.get('description') ?? '').trim(),
+      }),
+    });
+    if (!response.ok) throw new Error(await parseErrorResponse(response));
+    const result = await response.json() as { office: OfficeMetadata };
+    offices.push(result.office);
+    officeDialog.close();
+    officeForm.reset();
+    officeForm.querySelector<HTMLInputElement>('[name="emoji"]')!.value = '🏢';
+    switchOffice(result.office.id);
+    feedback.textContent = `Oficina ${result.office.name} creada.`;
+  } catch (error) {
+    officeFormError.textContent = error instanceof Error ? error.message : 'No se pudo crear la oficina.';
+  } finally {
+    submitOfficeButton.disabled = false;
+  }
 }
 
 function pairKey(bossId: string, subordinateId: string) {
@@ -222,16 +353,20 @@ function applyOfficeSnapshot(snapshot: OfficeSnapshot, revision: number, catalog
 async function pollOffice() {
   if (pollInFlight || pageStopped) return;
   pollInFlight = true;
+  const currentOfficeRevision = officeRevision;
+  const currentOfficeId = activeOfficeId;
   const revision = treeRevision;
   const catalogRevision = agentCatalogRevision;
   const controller = new AbortController();
+  pollController = controller;
   const timeout = setTimeout(() => controller.abort(), 10000);
   try {
-    const response = await fetch('/api/office', { signal: controller.signal, cache: 'no-store' });
+    const response = await fetch(apiPath('/office', currentOfficeId), { signal: controller.signal, cache: 'no-store' });
     if (!response.ok) throw new Error(await parseErrorResponse(response));
     const snapshot = await response.json() as OfficeSnapshot;
-    if (!pageStopped) applyOfficeSnapshot(snapshot, revision, catalogRevision);
+    if (!pageStopped && currentOfficeRevision === officeRevision) applyOfficeSnapshot(snapshot, revision, catalogRevision);
   } catch {
+    if (currentOfficeRevision !== officeRevision) return;
     // An unavailable snapshot must not leave arrows pretending there is live activity.
     activePairs.clear();
     activeAgentIds.clear();
@@ -241,8 +376,11 @@ async function pollOffice() {
     updateVisuals();
   } finally {
     clearTimeout(timeout);
-    pollInFlight = false;
-    if (!pageStopped) pollTimer = setTimeout(() => void pollOffice(), 850);
+    if (currentOfficeRevision === officeRevision) {
+      pollController = null;
+      pollInFlight = false;
+      if (!pageStopped) pollTimer = setTimeout(() => void pollOffice(), 850);
+    }
   }
 }
 
@@ -467,26 +605,32 @@ async function connectAgents(bossId: string, subordinateId: string) {
     subordinateId,
   }];
   treeSaving = true;
+  officeSelect.disabled = true;
+  const operationOfficeRevision = officeRevision;
+  const operationOfficeId = activeOfficeId;
   treeRevision += 1;
   updateConnectionControls();
   feedback.textContent = 'Guardando conexión en la oficina…';
   try {
-    const response = await fetch('/api/office/tree', {
+    const response = await fetch(apiPath('/office/tree', operationOfficeId), {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rootId: nextRootId, connections: nextConnections }),
     });
     if (!response.ok) throw new Error(await parseErrorResponse(response));
+    if (operationOfficeRevision !== officeRevision) return;
     rootAgentId = nextRootId;
     agentConnections.splice(0, agentConnections.length, ...nextConnections);
     feedback.textContent = `Conexión guardada: ${agentNodes.get(bossId)?.dataset.agentName ?? 'Jefe'} → ${agentNodes.get(subordinateId)?.dataset.agentName ?? 'subordinado'}.`;
     requestConnectionRender();
     updateAuditChoices();
   } catch (error) {
+    if (operationOfficeRevision !== officeRevision) return;
     feedback.textContent = error instanceof Error ? `No se guardó la conexión: ${error.message}` : 'No se pudo guardar la conexión.';
   } finally {
     treeSaving = false;
     treeRevision += 1;
     updateConnectionControls();
+    updateVisuals();
   }
 }
 
@@ -526,7 +670,7 @@ function updateAgentActivity(threadId: string) {
   const node = agentNodes.get(threadId);
   node?.classList.toggle('is-responding', pending);
   node?.setAttribute('aria-busy', String(pending));
-  nodeAvatars.get(threadId)?.update({ agentId: threadId, active: pending, size: 62, name: node?.dataset.agentName });
+  nodeAvatars.get(threadId)?.update({ agentId: visualAgentId(threadId), active: pending, size: 62, name: node?.dataset.agentName });
 }
 
 function refreshThread(threadId: string) {
@@ -555,11 +699,13 @@ async function loadPersonalHistory(agentId: string) {
   const conversation = getConversation(agentId);
   if (conversation.pending || historiesLoading.has(agentId)) return;
   historiesLoading.add(agentId);
+  const operationOfficeRevision = officeRevision;
+  const operationOfficeId = activeOfficeId;
   historyErrors.delete(agentId);
   updateChatExperience();
   const initialMessageCount = conversation.messages.length;
   try {
-    const response = await fetch(`/api/chats/${encodeURIComponent(agentId)}/messages`, { cache: 'no-store' });
+    const response = await fetch(apiPath(`/chats/${encodeURIComponent(agentId)}/messages`, operationOfficeId), { cache: 'no-store' });
     if (!response.ok) throw new Error(await parseErrorResponse(response));
     const history = await response.json() as { messages: Conversation['messages']; pending: boolean };
     if (history.pending) personalHistoryPending.add(agentId);
@@ -567,8 +713,9 @@ async function loadPersonalHistory(agentId: string) {
     // Never overwrite a locally started turn with an older history response.
     if (conversation.pending || conversation.messages.length !== initialMessageCount) return;
     conversation.messages.splice(0, conversation.messages.length, ...history.messages);
-    if (selectedAgentId === agentId) renderConversation();
+    if (operationOfficeRevision === officeRevision && selectedAgentId === agentId) renderConversation();
   } catch (error) {
+    if (operationOfficeRevision !== officeRevision) return;
     const message = `No se pudo cargar el historial personal: ${error instanceof Error ? error.message : 'error de conexión'}`;
     historyErrors.set(agentId, message);
     if (selectedAgentId === agentId) feedback.textContent = message;
@@ -592,6 +739,7 @@ function closeConversation() {
 
 function createAgentNode(agent: CreatedAgent) {
   if (agentNodes.has(agent.id)) return;
+  if (activeOfficeId === 'default') migrateAgentAvatar(agent.id, visualAgentId(agent.id));
   agentCatalog.set(agent.id, agent);
   const node = document.createElement('button');
   node.className = 'agent-node';
@@ -602,7 +750,7 @@ function createAgentNode(agent: CreatedAgent) {
   node.innerHTML = '<span class="agent-core"></span><span class="agent-tooltip"></span>';
   node.querySelector<HTMLElement>('.agent-tooltip')!.textContent = agent.profile.name;
   nodeAvatars.set(agent.id, mountAgentAvatar(node.querySelector<HTMLElement>('.agent-core')!, {
-    agentId: agent.id, size: 62, name: agent.profile.name,
+    agentId: visualAgentId(agent.id), size: 62, name: agent.profile.name,
   }));
   const rect = canvas.getBoundingClientRect();
   const canvasWidth = rect.width || document.querySelector<HTMLElement>('.workspace-content')!.clientWidth || 720;
@@ -720,6 +868,8 @@ function openCreateAgentDialog() {
 
 async function requestAgent(profile: AgentProfile) {
   agentCreationPending = true;
+  const operationOfficeRevision = officeRevision;
+  const operationOfficeId = activeOfficeId;
   agentCatalogRevision += 1;
   createButton.disabled = true;
   submitAgentButton.disabled = true;
@@ -727,7 +877,7 @@ async function requestAgent(profile: AgentProfile) {
   feedback.textContent = 'Creando agente…';
   updateVisuals();
   try {
-    const response = await fetch('/api/chats', {
+    const response = await fetch(apiPath('/chats', operationOfficeId), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(profile),
@@ -735,7 +885,8 @@ async function requestAgent(profile: AgentProfile) {
     if (!response.ok) throw new Error(await parseErrorResponse(response));
     const result = await response.json() as { allowed: boolean; agent?: CreatedAgent };
     if (!result.allowed || typeof result.agent?.id !== 'string' || !result.agent.id) throw new Error('El backend no devolvió un agente válido.');
-    saveAgentAvatar(result.agent.id, avatarPicker.getValue());
+    if (operationOfficeRevision !== officeRevision) return;
+    saveAgentAvatar(visualAgentId(result.agent.id), avatarPicker.getValue());
     createAgentNode(result.agent);
     totalAgents = agentNodes.size;
     updateCount();
@@ -744,6 +895,7 @@ async function requestAgent(profile: AgentProfile) {
     agentForm.reset();
     avatarPicker.reset();
   } catch (error) {
+    if (operationOfficeRevision !== officeRevision) return;
     const message = error instanceof TypeError ? 'No fue posible conectar con el backend.' : error instanceof Error ? error.message : 'No se pudo crear el agente.';
     feedback.textContent = message;
     agentFormError.textContent = message;
@@ -762,6 +914,8 @@ async function sendMessage(event: SubmitEvent) {
   const text = messageInput.value.trim();
   if (!threadId || !text) return;
   const conversation = getConversation(threadId);
+  const operationOfficeRevision = officeRevision;
+  const operationOfficeId = activeOfficeId;
   if (conversation.pending || activeAgentIds.has(threadId)) return;
 
   if (!conversations.startTurn(threadId, text)) return;
@@ -769,7 +923,7 @@ async function sendMessage(event: SubmitEvent) {
   drafts.delete(threadId);
   refreshThread(threadId);
   try {
-    const response = await fetch(`/api/message/${encodeURIComponent(threadId)}`, {
+    const response = await fetch(apiPath(`/message/${encodeURIComponent(threadId)}`, operationOfficeId), {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: text }),
     });
     if (!response.ok) throw new Error(await parseErrorResponse(response));
@@ -781,11 +935,21 @@ async function sendMessage(event: SubmitEvent) {
     const errorText = error instanceof TypeError ? 'No fue posible conectar con el backend.' : error instanceof Error ? error.message : 'Ocurrió un error al contactar al agente.';
     conversations.failTurn(threadId, errorText);
   } finally {
-    refreshThread(threadId);
+    if (operationOfficeRevision === officeRevision) refreshThread(threadId);
   }
 }
 
 createButton.addEventListener('click', openCreateAgentDialog);
+createOfficeButton.addEventListener('click', () => {
+  officeFormError.textContent = '';
+  officeDialog.showModal();
+  officeForm.querySelector<HTMLInputElement>('[name="name"]')!.focus();
+});
+officeSelect.addEventListener('change', () => switchOffice(officeSelect.value));
+officeForm.addEventListener('submit', (event) => void createOffice(event));
+document.querySelectorAll<HTMLButtonElement>('#cancel-office, #cancel-office-footer').forEach((button) => {
+  button.addEventListener('click', () => officeDialog.close());
+});
 fillRandomAgentButton.addEventListener('click', fillRandomAgentProfile);
 connectButton.addEventListener('click', () => {
   location.hash = 'office';
@@ -826,13 +990,15 @@ document.addEventListener('keydown', (event) => {
 updateConnectionControls();
 updateAuditChoices();
 updateVisuals();
-void pollOffice();
+void initializeOffices();
 window.addEventListener('pagehide', () => {
   pageStopped = true;
   clearTimeout(pollTimer);
+  pollController?.abort();
 });
 window.addEventListener('pageshow', () => {
   if (!pageStopped) return;
   pageStopped = false;
+  pollInFlight = false;
   void pollOffice();
 });

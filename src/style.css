@@ -24,6 +24,11 @@ h1 { margin: 0; font-size: clamp(25px, 3vw, 32px); line-height: 1.2; }
 .brand > span:last-child { min-width: 0; }
 .brand small { display: block; margin-top: 3px; color: var(--ink-2); font-family: 'Nunito Sans', system-ui, sans-serif; font-size: 9px; font-weight: 600; white-space: nowrap; }
 .brand-mark { display: flex; justify-content: center; align-items: center; flex: 0 0 auto; width: 38px; height: 38px; place-items: center; border-radius: 12px; color: var(--navy); background: var(--amber); font-size: 24px; }
+.office-switcher { display: grid; gap: 6px; padding: 0 8px; }
+.office-switcher > label { color: var(--ink-3); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.office-switcher > div { display: flex; gap: 6px; min-width: 0; }
+.office-switcher select { min-width: 0; flex: 1; padding: 9px 8px; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); background: var(--card); font-size: 12px; font-weight: 700; text-overflow: ellipsis; }
+.office-switcher button { display: grid; width: 38px; flex: 0 0 auto; place-items: center; border: 1px solid var(--line); border-radius: 10px; color: var(--navy); background: var(--blue-soft); cursor: pointer; font-size: 20px; }
 .workspace-nav { display: grid; gap: 7px; }
 .workspace-nav button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 11px 12px; border: 0; border-radius: 12px; color: var(--ink-2); background: transparent; text-align: left; cursor: pointer; font-weight: 700; }
 .workspace-nav button:hover { background: var(--soft); }
@@ -82,6 +87,19 @@ h1 { margin: 0; font-size: clamp(25px, 3vw, 32px); line-height: 1.2; }
 @keyframes agent-pulse { 50% { box-shadow: 0 0 0 8px rgb(77 124 254 / 12%); transform: translateY(-3px); } }
 .agent-dialog { width: min(820px, calc(100vw - 28px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 18px; color: var(--ink); background: var(--card); box-shadow: 0 28px 90px rgb(27 35 64 / 25%); }
 .agent-dialog::backdrop { background: rgb(27 35 64 / 38%); backdrop-filter: blur(4px); }
+.office-dialog { width: min(520px, calc(100vw - 28px)); padding: 0; border: 1px solid var(--line); border-radius: 18px; color: var(--ink); background: var(--card); box-shadow: 0 28px 90px rgb(27 35 64 / 25%); }
+.office-dialog::backdrop { background: rgb(27 35 64 / 38%); backdrop-filter: blur(4px); }
+.office-form { display: grid; gap: 16px; padding: 26px; }
+.office-form header { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.office-form h2, .office-form p { margin: 0; }
+.office-form > p:not(.agent-form-error) { color: var(--ink-2); font-size: 13px; }
+.office-form label { display: grid; gap: 7px; font-size: 13px; font-weight: 800; }
+.office-form input, .office-form textarea { width: 100%; min-width: 0; padding: 11px 13px; border: 1px solid #d8deec; border-radius: 12px; color: var(--ink); background: var(--card); }
+.office-form textarea { min-height: 90px; resize: vertical; }
+.office-form-grid { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 12px; }
+.office-form footer { display: flex; justify-content: flex-end; gap: 9px; padding-top: 14px; border-top: 1px solid var(--line); }
+.office-form footer button { padding: 10px 15px; border: 1px solid var(--navy); border-radius: 12px; color: #fff; background: var(--navy); cursor: pointer; font-weight: 800; }
+.office-form footer .secondary-button { border-color: var(--line); color: var(--ink-2); background: var(--card); }
 .agent-form { display: grid; gap: 16px; padding: clamp(20px, 4vw, 30px); }
 .agent-form-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
 .agent-form-header h2 { margin: 0; font-size: 26px; }
@@ -110,6 +128,7 @@ h1 { margin: 0; font-size: clamp(25px, 3vw, 32px); line-height: 1.2; }
   body { grid-template-columns: minmax(0, 1fr); }
   .app-sidebar { position: relative; height: auto; gap: 16px; padding: 16px 18px 12px; border-right: 0; border-bottom: 1px solid var(--line); }
   .brand { padding: 0; }
+  .office-switcher { max-width: 360px; padding: 0; }
   .workspace-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
   .workspace-nav button { justify-content: center; padding: 9px 6px; font-size: 13px; text-align: center; }
   .workspace-nav #new-chat { margin-top: 0; }
@@ -121,6 +140,7 @@ h1 { margin: 0; font-size: clamp(25px, 3vw, 32px); line-height: 1.2; }
 }
 @media (max-width: 600px) {
   .app-sidebar { gap: 12px; padding: 14px 14px 10px; }
+  .office-switcher { max-width: none; }
   .brand { font-size: 21px; }
   .brand-mark { width: 32px; height: 32px; }
   .workspace-nav button { min-height: 42px; gap: 5px; font-size: 12px; }

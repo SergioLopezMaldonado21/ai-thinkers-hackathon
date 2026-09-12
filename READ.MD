@@ -14,6 +14,30 @@ coordinación de `codex/feature-office-coordination-audit`. Consulta
 [el informe de integración](docs/integracion-dashboard.md) para el alcance y las
 validaciones.
 
+## Varias oficinas
+
+Usa el selector **Oficina activa** de la barra lateral para cambiar de espacio y
+el botón `+` para crear otro. Cada oficina mantiene aislados sus agentes, chats,
+jerarquía, memoria y comunicaciones. La selección activa se recuerda en este
+navegador.
+
+La oficina anterior se conserva como **Mi oficina**. Los endpoints históricos
+siguen apuntando a ella; la interfaz usa las nuevas rutas con ámbito:
+
+```text
+GET  /api/offices
+POST /api/offices
+GET  /api/offices/:officeId/office
+POST /api/offices/:officeId/chats
+PUT  /api/offices/:officeId/office/tree
+GET  /api/offices/:officeId/chats/:agentId/messages
+POST /api/offices/:officeId/message/:agentId
+GET  /api/offices/:officeId/communications
+```
+
+El registro sigue en memoria para mantener el MVP ligero: reiniciar el backend
+borra las oficinas y sus contenidos.
+
 ## Requisitos
 
 - Node.js y npm.

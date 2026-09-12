@@ -12,6 +12,10 @@
   <body>
     <aside class="app-sidebar" aria-label="Navegación principal">
       <a class="brand" href="#office"><span class="brand-mark" aria-hidden="true">m<span>o</span></span><span>MiniOficina<small>Un pequeño gran equipo</small></span></a>
+      <div class="office-switcher">
+        <label for="office-select">Oficina activa</label>
+        <div><select id="office-select" aria-label="Seleccionar oficina"><option>Cargando…</option></select><button id="create-office" type="button" aria-label="Crear otra oficina" title="Crear otra oficina">＋</button></div>
+      </div>
       <nav class="workspace-nav" aria-label="Vistas de la oficina">
         <button type="button" data-view="office" aria-current="page"><span aria-hidden="true">▦</span> Mi oficina</button>
         <button type="button" data-view="dashboard"><span aria-hidden="true">◉</span> Agentes</button>
@@ -21,7 +25,7 @@
     </aside>
     <main class="workspace">
       <header class="toolbar">
-        <div><p class="eyebrow">TU EQUIPO EN UN SOLO LUGAR</p><h1>MiniOficina</h1><p id="workspace-status" class="workspace-status" role="status">Conectando con tu equipo…</p></div>
+        <div><p class="eyebrow">TU EQUIPO EN UN SOLO LUGAR</p><h1 id="office-name">Mi oficina</h1><p id="workspace-status" class="workspace-status" role="status">Conectando con tu equipo…</p></div>
         <div class="toolbar-actions">
           <p id="agent-count" class="agent-count">0 agentes</p>
           <div class="audit-controls">
@@ -51,6 +55,16 @@
       <section id="dashboard-view" aria-label="Dashboard de agentes" hidden><div id="agent-dashboard"></div></section>
       </div>
       <button id="create-agent" class="create-agent" type="button" aria-label="Crear nuevo agente"><span class="plus">+</span><span>Nuevo agente</span></button>
+      <dialog id="office-dialog" class="office-dialog" aria-labelledby="office-dialog-title">
+        <form id="office-form" class="office-form">
+          <header><div><p class="eyebrow">NUEVO ESPACIO DE TRABAJO</p><h2 id="office-dialog-title">Crear oficina</h2></div><button id="cancel-office" class="close-chat" type="button" aria-label="Cancelar creación">×</button></header>
+          <p>Cada oficina tiene sus propios agentes, chats, jerarquía y comunicaciones.</p>
+          <div class="office-form-grid"><label>Emoji<input name="emoji" value="🏢" maxlength="8" aria-label="Emoji de la oficina" /></label><label>Nombre<input name="name" maxlength="80" required autocomplete="off" placeholder="Ej. Equipo de marketing" /></label></div>
+          <label>Descripción <span class="field-hint">Opcional</span><textarea name="description" maxlength="240" placeholder="¿Para qué usarás esta oficina?"></textarea></label>
+          <p id="office-form-error" class="agent-form-error" role="alert"></p>
+          <footer><button id="cancel-office-footer" type="button" class="secondary-button">Cancelar</button><button id="submit-office" type="submit">Crear oficina</button></footer>
+        </form>
+      </dialog>
       <dialog id="agent-dialog" class="agent-dialog" aria-labelledby="agent-dialog-title">
         <form id="agent-form" class="agent-form">
           <header class="agent-form-header">

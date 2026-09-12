@@ -36,8 +36,19 @@ try {
   let lastProfile;
   await page.route('**/api/**', async (route) => {
     const request = route.request();
-    const path = new URL(request.url()).pathname;
+    const rawPath = new URL(request.url()).pathname;
+    const path = rawPath.replace(/^\/api\/offices\/default/, '/api');
     const send = (body, status = 200) => route.fulfill({ status, json: structuredClone(body) });
+    if (rawPath === '/api/offices' && request.method() === 'GET') return send({
+      offices: [{ id: 'default', name: 'Mi oficina', emoji: '🏢', description: 'Principal', createdAt: '2026-01-01T00:00:00.000Z' }],
+      defaultOfficeId: 'default',
+    });
+    if (rawPath === '/api/offices' && request.method() === 'POST') return send({
+      office: { id: 'office_demo', ...request.postDataJSON(), createdAt: '2026-01-02T00:00:00.000Z' },
+    }, 201);
+    if (rawPath === '/api/offices/office_demo/office') return send({
+      agents: [], rootId: null, connections: [], communications: [], activeAgentIds: [],
+    });
     if (path === '/api/office') return send(office);
     if (path === '/api/communications') return send({ communications: [] });
     if (path === '/api/chats' && request.method() === 'POST') {
@@ -76,6 +87,19 @@ try {
   assert.equal(await page.locator('[data-agent-id="ada"]').count(), 1, 'Agent IDs remain unique to canvas nodes');
   assert.equal(await page.locator('#chat-panel').evaluate((node) => node.inert), true, 'Closed chat is inert');
 
+  // Offices are created and selected without leaking the default office catalog.
+  await page.locator('#create-office').click();
+  await page.locator('#office-form [name="name"]').fill('Oficina Demo');
+  await page.locator('#office-form [name="emoji"]').fill('🚀');
+  await page.locator('#submit-office').click();
+  await page.getByRole('heading', { name: '🚀 Oficina Demo' }).waitFor();
+  await page.locator('[data-view="dashboard"]').click();
+  await page.getByText('Tu equipo empieza aquí', { exact: true }).waitFor();
+  assert.equal(await page.locator('.agent-node').count(), 0, 'New office starts isolated');
+  await page.locator('#office-select').selectOption('default');
+  await page.locator('[data-dashboard-agent-id="ada"]').waitFor();
+  assert.equal(await page.locator('.agent-node').count(), 2, 'Switching back restores only the default office');
+
   await page.locator('[data-view="dashboard"]').click();
   await page.locator('[data-dashboard-agent-id="ada"]').waitFor();
   await page.getByRole('searchbox', { name: 'Buscar agentes por nombre, puesto o habilidad' }).fill('alvarez');
@@ -112,7 +136,8 @@ try {
   await page.locator('[data-chat-agent-id="ada"]').click();
   await page.locator('.message.agent .chat-message-text').getByText('Primera línea de respuesta.', { exact: false }).waitFor();
   assert.equal(await page.locator('.chat-message-text b').count(), 0, 'Agent content is rendered as text, never HTML');
-  assert.equal(await page.locator('.message.agent .chat-message-text').evaluate((node) => getComputedStyle(node).whiteSpace), 'pre-wrap');
+  await page.waitForFunction(() => Array.from(document.querySelectorAll('.message.agent .chat-message-text'))
+    .some((node) => getComputedStyle(node).whiteSpace === 'pre-wrap'));
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('#chat-panel').evaluate((node) => node.inert), true);
 
@@ -141,7 +166,7 @@ try {
   await page.locator('#submit-agent').click();
   await page.locator('#agent-dialog').waitFor({ state: 'hidden' });
   assert.equal('avatar' in lastProfile, false, 'Visual preferences do not change the API contract');
-  const avatarKey = 'mini-oficina:avatar:v1:new-agent';
+  const avatarKey = `mini-oficina:avatar:v1:${encodeURIComponent('default:new-agent')}`;
   const chosenAvatar = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), avatarKey);
   assert.equal(chosenAvatar.color, '#4D96FF');
   await page.reload();
@@ -176,7 +201,7 @@ try {
   assert.equal(await page.locator('.chat-picker').evaluate((node) => node.open), false, 'Native dialog closes with Escape');
   assert.deepEqual(errors, [], 'No browser runtime errors');
   assert.deepEqual(unexpectedRequests, [], 'No new or accidental API calls');
-  console.log('Dashboard UI verified: real-agent search/cards, avatar selection/reload, preserved creation contracts, loading/history and permission errors, draft isolation, pending-chat switching, safe multiline messages, empty states, keyboard/Escape, and 390/320px layouts.');
+  console.log('Dashboard UI verified: office creation/isolation/switching, real-agent search/cards, avatar selection/reload, preserved creation contracts, loading/history and permission errors, draft isolation, pending-chat switching, safe multiline messages, empty states, keyboard/Escape, and 390/320px layouts.');
 } finally {
   releaseHistory?.();
   releaseMessage?.();

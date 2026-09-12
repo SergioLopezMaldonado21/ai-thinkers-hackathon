@@ -58,7 +58,7 @@ Las pruebas usan fixtures o un proveedor determinista, sin cargar credenciales n
 | --- | --- |
 | `npm run build` | PASS: backend, tipado frontend y bundle Vite de producción. |
 | `npm run typecheck` | PASS: frontend, backend y tipos de pruebas. |
-| `npm test` | PASS: 19 pruebas backend y 3 de conversaciones frontend. |
+| `npm test` | PASS: 20 pruebas backend y 3 de conversaciones frontend. |
 | `node scripts/verify-office-ui.mjs` | PASS: flechas activas, auditoría con flechas ocultas, mensajes internos/personales separados, teclado, movimiento reducido, móvil y reset de oficina. |
 | `node --import tsx scripts/verify-office-e2e.mjs` | PASS: creación por formulario, conexiones guardadas, delegación por API real, auditoría, memoria separada e historial tras recargar. |
 | `node scripts/verify-dashboard-ui.mjs` | PASS: búsqueda con acentos, tarjetas reales, avatar y recarga, contrato de creación intacto, borradores independientes, cambio de chat durante envío, errores de historial y permisos, texto seguro, estados vacíos y anchos 390/320 px. |
@@ -70,3 +70,9 @@ Se revisaron capturas de escritorio y móvil generadas por el recorrido automati
 Para ejecutar los recorridos se utilizó Playwright disponible en el entorno mediante `PLAYWRIGHT_MODULE`. En Windows, el sandbox bloqueó inicialmente esbuild; las verificaciones se ejecutaron con la autorización de ejecución correspondiente.
 
 No quedan fallos conocidos en las comprobaciones ejecutadas. La conexión con un modelo real de OpenRouter y la sincronización de avatares entre navegadores no están cubiertas: la primera requiere las credenciales del entorno y la segunda no forma parte de la persistencia existente.
+
+## Extensión multi-oficina
+
+El registro `OfficeRegistry` crea un par independiente de servicios de conversaciones y coordinación por oficina. La oficina original se migra como `default` y conserva los endpoints históricos. La interfaz permite crear y seleccionar oficinas, aborta el polling anterior al cambiar y separa los avatares mediante la clave compuesta `officeId:agentId`.
+
+La prueba automatizada cubre creación, nombres duplicados, rutas inexistentes, compatibilidad de la oficina principal y rechazo de un agente usado desde otra oficina. El recorrido de navegador comprueba creación, estado vacío, cambio de oficina y recuperación del catálogo original sin mezcla de agentes.
