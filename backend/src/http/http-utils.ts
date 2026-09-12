@@ -22,7 +22,7 @@ export function sendJson(
 export function sendCorsPreflight(response: ServerResponse, allowedOrigin: string): void {
   response.writeHead(204, {
     'Access-Control-Allow-Origin': allowedOrigin,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
   });
   response.end();

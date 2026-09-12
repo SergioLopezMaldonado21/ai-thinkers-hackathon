@@ -10,10 +10,26 @@
     <main class="workspace">
       <header class="toolbar">
         <div><p class="eyebrow">LIVE WORKSPACE</p><h1>Agent Canvas</h1></div>
-        <p id="agent-count" class="agent-count">0 agentes</p>
+        <div class="toolbar-actions">
+          <p id="agent-count" class="agent-count">0 agentes</p>
+          <div class="audit-controls">
+            <label class="sr-only" for="audit-pair">Comunicación entre jefe y subordinado</label>
+            <select id="audit-pair" aria-label="Comunicación entre jefe y subordinado" disabled><option value="">Todavía no hay conexiones</option></select>
+            <button id="audit-pair-open" class="canvas-control" type="button" disabled>Ver comunicación</button>
+          </div>
+          <button id="toggle-connect" class="canvas-control" type="button" aria-pressed="false">
+            <span aria-hidden="true">↗</span><span>Conectar</span>
+          </button>
+          <button id="toggle-connections" class="canvas-control eye-control" type="button" aria-pressed="true" aria-label="Ocultar flechas de conexión" title="Ocultar flechas de conexión">
+            <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="2.75"></circle><path class="eye-slash" d="m4 4 16 16"></path></svg>
+            <span class="sr-only">Mostrar u ocultar flechas de conexión</span>
+          </button>
+        </div>
       </header>
       <section id="canvas" class="canvas" aria-label="Canvas de agentes">
+        <p id="office-status" class="office-status" role="status">Conectando con la oficina…</p>
         <div class="canvas-grid" aria-hidden="true"></div>
+        <svg id="connection-layer" class="connection-layer" aria-hidden="true"></svg>
         <div class="canvas-copy" aria-hidden="true"><span>ESPACIO DE TRABAJO</span><p>Crea agentes y muévelos<br />libremente por el canvas.</p></div>
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
       </section>
@@ -38,11 +54,12 @@
             <label>Rol de pensamiento<select id="agent-thinking-role" name="thinkingRole" required></select></label>
           </div>
           <p id="agent-form-error" class="agent-form-error" role="alert"></p>
-          <footer class="agent-form-actions"><button id="cancel-agent-footer" type="button" class="secondary-button">Cancelar</button><button id="submit-agent" type="submit">Crear agente</button></footer>
+          <footer class="agent-form-actions"><button id="fill-random-agent" type="button" class="secondary-button">Autorrellenar al azar</button><button id="cancel-agent-footer" type="button" class="secondary-button">Cancelar</button><button id="submit-agent" type="submit">Crear agente</button></footer>
         </form>
       </dialog>
       <aside id="chat-panel" class="chat-panel" aria-hidden="true">
-        <header class="chat-header"><div><p class="eyebrow">CONVERSACIÓN</p><h2 id="chat-title">Agente</h2></div><button id="close-chat" class="close-chat" type="button" aria-label="Cerrar conversación">×</button></header>
+        <header class="chat-header"><div><p class="eyebrow">TU CHAT PERSONAL</p><h2 id="chat-title">Agente</h2></div><button id="close-chat" class="close-chat" type="button" aria-label="Cerrar conversación">×</button></header>
+        <p class="chat-context">Habla directamente con este agente. Sus consultas al equipo se muestran en «Ver comunicación».</p>
         <div id="messages" class="messages" aria-live="polite"></div>
         <form id="message-form" class="message-form"><input id="message-input" autocomplete="off" placeholder="Escribe un mensaje…" aria-label="Mensaje" /><button id="send-message" type="submit">Enviar</button></form>
       </aside>

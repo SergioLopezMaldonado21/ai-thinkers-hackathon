@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Server } from 'node:http';
 import { ConversationService } from './application/conversation-service.js';
+import { OfficeCoordinationService } from './application/office-coordination-service.js';
 import { loadEnvironment, type EnvironmentConfig } from './config/environment.js';
 import { createApiServer, type Logger } from './http/api-server.js';
 import { OpenRouterClient } from './infrastructure/openrouter/openrouter-client.js';
@@ -20,8 +21,10 @@ export async function startBackend(options: StartBackendOptions = {}): Promise<R
   const config = options.config ?? loadEnvironment();
   const openRouterClient = new OpenRouterClient(config.openRouter);
   const conversations = new ConversationService(openRouterClient, randomUUID);
+  const office = new OfficeCoordinationService(conversations, randomUUID);
   const server = createApiServer({
     conversations,
+    office,
     allowedOrigin: config.frontendOrigin,
     maxBodyBytes: config.maxBodyBytes,
     logger: options.logger,

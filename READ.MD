@@ -97,16 +97,73 @@ perfil obligatorio del agente. El contrato requiere `name`, `position`,
 `responsibilities`, `limitations`, `deliverables`, `skills`, `operationalRole`
 y `thinkingRole`. Los dos roles son identificadores controlados y corresponden,
 respectivamente, a los roles de operación y de pensamiento en `Descriptions/`.
-`POST /api/message/:threadId` envía su historial completo y sólo guarda el nuevo
-par usuario/asistente si el proveedor responde correctamente. Cada conversación
-tiene su propio bloqueo, así que otro agente puede continuar mientras una
-respuesta está en curso.
+`POST /api/message/:threadId` inicia la coordinación desde el agente elegido.
+Ese agente recibe su perfil, el directorio de la oficina, sus contactos permitidos
+y la memoria relevante. Decide resolver la solicitud, delegar partes del trabajo
+a subordinados directos o combinar ambas acciones. Su respuesta final es la que
+se guarda en el chat personal; las solicitudes internas tienen un registro separado.
+
+## Conexiones y auditoría
+
+1. Crea agentes con sus perfiles. El botón **Autorrellenar al azar** prepara datos
+   de prueba; pulsa **Crear agente** para confirmar.
+2. Activa **Conectar**, selecciona al jefe y después a un subordinado sin jefe.
+   La primera conexión define la raíz. Las siguientes amplían ese mismo árbol.
+3. Abre el chat personal de cualquier agente y envía una tarea. El agente elige
+   a qué subordinados consultar según sus capacidades y el trabajo solicitado.
+4. Durante una consulta, su flecha se ilumina. Abre la auditoría de esa pareja
+   para ver la solicitud, la respuesta, el estado y la ronda.
+5. El ojo oculta o muestra las flechas sin borrar relaciones. La auditoría sigue
+   disponible mediante los controles de conexiones.
+
+El frontend consulta el estado de la oficina periódicamente. Las animaciones
+dependen de consultas pendientes reales; una respuesta o error cierra la actividad.
+La preferencia del sistema para reducir movimiento conserva la indicación visual
+sin animaciones. Las preguntas y respuestas de otros agentes no se añaden al
+historial personal del subordinado.
+
+La jerarquía se valida en el servidor: un jefe inicial, un padre por subordinado,
+sin ciclos ni conexiones laterales. Durante una ejecución no se cambia el árbol.
+Cada relación tiene como máximo cuatro intercambios por solicitud del usuario;
+las delegaciones anidadas comparten ese presupuesto. El cierre debe reconocer
+pendientes o desacuerdos cuando se alcanza el límite. Un agente puede trabajar
+solo y finalizar antes de consumir rondas de coordinación.
+
+Rutas de coordinación:
+
+- `GET /api/office`: perfiles, árbol, consultas y agentes activos.
+- `PUT /api/office/tree`: sustituye el árbol completo después de validarlo.
+- `GET /api/communications?bossId=...&subordinateId=...`: consultas de una pareja.
+- `GET /api/chats/:id/messages`: historial personal del agente.
 
 ## Persistencia y limitaciones
 
-Las conversaciones y sus historiales se conservan únicamente en memoria. Al
-reiniciar el backend deben crearse agentes nuevos. El historial visual del
-navegador tampoco se persiste al recargar la página.
+La oficina, las conversaciones, la auditoría y las mini memorias se conservan en
+memoria del backend. Las mini memorias permiten reutilizar aprendizajes entre
+solicitudes mientras ese proceso siga vivo. Reiniciar el backend borra ese estado.
+Recargar el navegador recupera la oficina desde el backend; la posición de los
+nodos y las preferencias visuales no se guardan de forma permanente.
+
+El límite de rondas controla los intercambios, pero no garantiza acuerdo ni
+exactitud del modelo. Las solicitudes al proveedor tienen su propio timeout.
+Si una tarea requiere ayuda fuera de la rama del agente, su respuesta explica
+esa limitación. Esta versión no ejecuta escalamiento automático hacia el jefe.
+
+## Verificación visual sin llamadas al modelo
+
+Con Playwright disponible, estas comprobaciones levantan servidores temporales
+y los cierran al terminar:
+
+```bash
+node scripts/verify-office-ui.mjs
+node --import tsx scripts/verify-office-e2e.mjs
+```
+
+La primera usa respuestas HTTP de prueba para revisar la interfaz. La segunda
+usa el backend real con un proveedor simulado y verifica creación, conexiones,
+delegación, auditoría, memoria e historial tras recargar. Ninguna carga `.env`
+ni contacta al modelo. Si Playwright está en otro directorio, define
+`PLAYWRIGHT_MODULE` con la ruta de su paquete antes de ejecutarlas.
 
 ## Diagnóstico
 

@@ -8,6 +8,7 @@ import { agentInstructions } from './agent-instructions.js';
 import { ConflictError, NotFoundError, ValidationError } from '../core/errors.js';
 
 export type IdFactory = () => string;
+export type ConversationResponder = (messages: readonly ChatMessage[]) => Promise<string>;
 
 export class ConversationService {
   private readonly conversations = new Map<string, Conversation>();
@@ -28,7 +29,21 @@ export class ConversationService {
     return conversationId;
   }
 
-  async sendMessage(conversationId: string, rawMessage: unknown): Promise<string> {
+  listAgents(): Array<{ id: string; profile: AgentProfile }> {
+    return [...this.conversations.values()].map(({ id, profile }) => ({ id, profile: structuredClone(profile) }));
+  }
+
+  getConversation(conversationId: string): Conversation {
+    const conversation = this.conversations.get(conversationId);
+    if (!conversation) throw new NotFoundError('El agente no fue creado por esta aplicación.', 'CONVERSATION_NOT_FOUND');
+    return structuredClone(conversation);
+  }
+
+  completeInternal(messages: readonly ChatMessage[], sessionId: string): Promise<string> {
+    return this.completionGateway.complete(messages, { sessionId });
+  }
+
+  async sendMessage(conversationId: string, rawMessage: unknown, responder?: ConversationResponder): Promise<string> {
     const conversation = this.conversations.get(conversationId);
     if (!conversation) {
       throw new NotFoundError(
@@ -58,10 +73,10 @@ export class ConversationService {
 
     conversation.busy = true;
     try {
-      const reply = await this.completionGateway.complete(
-        [agentInstructions(conversation.profile), ...conversation.messages, userMessage],
-        { sessionId: conversation.id },
-      );
+      const messages = [agentInstructions(conversation.profile), ...conversation.messages, userMessage];
+      const reply = responder
+        ? await responder(messages)
+        : await this.completionGateway.complete(messages, { sessionId: conversation.id });
       conversation.messages.push(userMessage, { role: 'assistant', content: reply });
       return reply;
     } finally {
