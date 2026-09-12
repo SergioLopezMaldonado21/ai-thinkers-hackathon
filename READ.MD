@@ -19,15 +19,17 @@ $env:OPENROUTER_API_KEY="sk-or-v1-..."
 $env:OPENROUTER_MODEL="openrouter/auto"
 ```
 
-También puedes guardarlas en un archivo `.env` en la raíz:
+También puedes copiar `.env.example` como `.env` en la raíz del repositorio:
 
 ```dotenv
 OPENROUTER_API_KEY=sk-or-v1-...
 OPENROUTER_MODEL=openrouter/auto
 ```
 
-El script `dev:backend` carga ese archivo automáticamente. `.env` está excluido
-de Git; la API key no se incluye en respuestas HTTP ni se expone al navegador.
+Los scripts del backend cargan ese archivo automáticamente. Debe vivir en la
+raíz, no dentro de `backend`, porque los comandos se ejecutan desde la raíz del
+repositorio. `.env` está excluido de Git; la API key no se incluye en respuestas
+HTTP ni se expone al navegador.
 
 ## Desarrollo
 
@@ -56,15 +58,49 @@ Ejecuta las pruebas automatizadas (todas usan fixtures y no llaman al modelo):
 npm test
 ```
 
+Genera los artefactos de producción y arranca el JavaScript compilado:
+
+```bash
+npm run build
+npm run start:backend
+```
+
 ## Arquitectura
 
-- El backend llama a `POST https://openrouter.ai/api/v1/chat/completions` con la
-  API key en el encabezado `Authorization`.
-- `POST /api/chats` crea una conversación local con un identificador opaco.
-- `POST /api/message/:threadId` envía el historial completo de esa conversación
-  a OpenRouter y guarda el nuevo par usuario/asistente cuando la llamada termina.
-- El navegador conserva conversaciones y estados de espera independientes por
-  identificador, por lo que se puede cambiar de agente mientras otro responde.
+El backend usa una arquitectura por capas y dependencias dirigidas hacia el
+dominio:
+
+```text
+backend/
+├── src/
+│   ├── application/       Casos de uso y coordinación de conversaciones
+│   ├── config/            Lectura y validación de variables de entorno
+│   ├── core/              Errores comunes de la aplicación
+│   ├── domain/            Tipos e interfaces independientes de proveedores
+│   ├── http/              Rutas, CORS, parsing y respuestas HTTP
+│   ├── infrastructure/    Adaptadores externos, actualmente OpenRouter
+│   ├── bootstrap.ts       Composición e inicio del servidor
+│   └── index.ts           Punto de entrada y apagado ordenado
+├── test/                  Pruebas TypeScript sin llamadas reales al modelo
+├── tsconfig.json          Compilación a backend/dist
+└── tsconfig.test.json     Tipado estricto de código y pruebas
+```
+
+`ConversationService` depende de `ChatCompletionGateway`, no de OpenRouter. De
+este modo puede añadirse otro proveedor o un adaptador de pruebas sin modificar
+el caso de uso ni las rutas. `OpenRouterClient` implementa esa interfaz y llama a
+`POST https://openrouter.ai/api/v1/chat/completions` con la API key únicamente en
+el encabezado `Authorization`.
+
+`POST /api/chats` crea una conversación local con un identificador opaco y el
+perfil obligatorio del agente. El contrato requiere `name`, `position`,
+`responsibilities`, `limitations`, `deliverables`, `skills`, `operationalRole`
+y `thinkingRole`. Los dos roles son identificadores controlados y corresponden,
+respectivamente, a los roles de operación y de pensamiento en `Descriptions/`.
+`POST /api/message/:threadId` envía su historial completo y sólo guarda el nuevo
+par usuario/asistente si el proveedor responde correctamente. Cada conversación
+tiene su propio bloqueo, así que otro agente puede continuar mientras una
+respuesta está en curso.
 
 ## Persistencia y limitaciones
 
@@ -84,3 +120,29 @@ Si el chat muestra un error de autenticación:
 
 Los errores de conexión o timeout aparecen dentro de la conversación sin borrar
 los mensajes existentes.
+
+## Reglas para agentes colaboradores
+
+1. Antes de modificar archivos, revisa la estructura del proyecto y entiende el
+   contexto existente.
+2. Trabaja únicamente dentro del alcance de la tarea asignada. No cambies
+   funcionalidades no relacionadas.
+3. No subas, muestres ni imprimas secretos. Nunca incluyas valores de `.env`,
+   API keys, tokens o credenciales en el código, commits o mensajes.
+4. Respeta los archivos existentes y los cambios realizados por otros agentes.
+   No sobrescribas trabajo ajeno sin verificarlo primero.
+5. Usa nombres claros y mantén el estilo de código ya utilizado en el proyecto.
+6. Si agregas una dependencia, justifica por qué es necesaria y evita
+   dependencias innecesarias.
+7. Valida tus cambios antes de entregarlos: ejecuta las pruebas, el build o las
+   verificaciones disponibles.
+8. Si encuentras un error fuera de tu alcance, repórtalo indicando el archivo,
+   el problema, el impacto y una posible solución.
+9. No borres archivos ni hagas cambios destructivos sin autorización explícita.
+10. Mantén los cambios pequeños, enfocados y fáciles de revisar.
+11. Antes de finalizar, informa qué cambiaste, qué archivos modificaste, qué
+    verificaciones ejecutaste y cualquier pendiente o riesgo.
+12. Si una instrucción es ambigua o puede afectar la arquitectura, solicita
+    aclaración antes de implementar.
+13. Si otro agente ya trabaja en la misma área, coordina los cambios y evita
+    duplicar trabajo o modificar simultáneamente los mismos archivos.

@@ -1,11 +1,34 @@
 import './style.css';
 import { ConversationStore, type Conversation } from './conversation-store';
 
-type CreatedAgent = { id: string };
+type OperationalRole =
+  | 'lead_manager' | 'researcher_intel' | 'secretary_executive_assistant' | 'scribe_recorder'
+  | 'coordinator' | 'communicator_correspondent' | 'liaison' | 'office_manager'
+  | 'bookkeeper' | 'clerk' | 'archivist' | 'reviewer_quality_control' | 'receptionist'
+  | 'troubleshooter' | 'people_manager_hr' | 'messenger' | 'gatekeeper' | 'chief_of_staff';
+type ThinkingRole = 'analyst' | 'skeptic' | 'visionary' | 'pragmatist' | 'empath_user_advocate' | 'synthesizer';
+type AgentProfile = {
+  name: string;
+  position: string;
+  responsibilities: string;
+  limitations: string;
+  deliverables: string;
+  skills: string[];
+  operationalRole: OperationalRole;
+  thinkingRole: ThinkingRole;
+};
+type CreatedAgent = { id: string; profile: AgentProfile };
 type MessageResponse = { threadId: string; reply: string };
 
 const canvas = document.querySelector<HTMLElement>('#canvas')!;
 const createButton = document.querySelector<HTMLButtonElement>('#create-agent')!;
+const agentDialog = document.querySelector<HTMLDialogElement>('#agent-dialog')!;
+const agentForm = document.querySelector<HTMLFormElement>('#agent-form')!;
+const agentFormError = document.querySelector<HTMLElement>('#agent-form-error')!;
+const cancelAgentButtons = document.querySelectorAll<HTMLButtonElement>('#cancel-agent, #cancel-agent-footer');
+const submitAgentButton = document.querySelector<HTMLButtonElement>('#submit-agent')!;
+const operationalRoleSelect = document.querySelector<HTMLSelectElement>('#agent-operational-role')!;
+const thinkingRoleSelect = document.querySelector<HTMLSelectElement>('#agent-thinking-role')!;
 const agentCount = document.querySelector<HTMLElement>('#agent-count')!;
 const feedback = document.querySelector<HTMLElement>('#feedback')!;
 const chatPanel = document.querySelector<HTMLElement>('#chat-panel')!;
@@ -21,6 +44,34 @@ const agentNodes = new Map<string, HTMLButtonElement>();
 let selectedAgentId: string | null = null;
 let totalAgents = 0;
 let spawnIndex = 0;
+
+const operationalRoles: ReadonlyArray<readonly [OperationalRole, string]> = [
+  ['lead_manager', 'The Lead / Manager'], ['researcher_intel', 'The Researcher / Intel'],
+  ['secretary_executive_assistant', 'The Secretary / Executive Assistant'], ['scribe_recorder', 'The Scribe / Recorder'],
+  ['coordinator', 'The Coordinator'], ['communicator_correspondent', 'The Communicator / Correspondent'],
+  ['liaison', 'The Liaison'], ['office_manager', 'The Office Manager'], ['bookkeeper', 'The Bookkeeper'],
+  ['clerk', 'The Clerk'], ['archivist', 'The Archivist'], ['reviewer_quality_control', 'The Reviewer / Quality Control'],
+  ['receptionist', 'The Receptionist'], ['troubleshooter', 'The Troubleshooter'],
+  ['people_manager_hr', 'The People Manager / HR'], ['messenger', 'The Messenger'],
+  ['gatekeeper', 'The Gatekeeper'], ['chief_of_staff', 'The Chief of Staff'],
+];
+const thinkingRoles: ReadonlyArray<readonly [ThinkingRole, string]> = [
+  ['analyst', 'The Analyst'], ['skeptic', 'The Skeptic'], ['visionary', 'The Visionary'],
+  ['pragmatist', 'The Pragmatist'], ['empath_user_advocate', 'The Empath / User Advocate'],
+  ['synthesizer', 'The Synthesizer'],
+];
+
+function populateRoleOptions<T extends string>(select: HTMLSelectElement, roles: ReadonlyArray<readonly [T, string]>) {
+  for (const [value, label] of roles) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    select.append(option);
+  }
+}
+
+populateRoleOptions(operationalRoleSelect, operationalRoles);
+populateRoleOptions(thinkingRoleSelect, thinkingRoles);
 
 function getConversation(threadId: string): Conversation {
   return conversations.get(threadId);
@@ -77,7 +128,7 @@ function refreshThread(threadId: string) {
 function openConversation(agentId: string) {
   selectedAgentId = agentId;
   getConversation(agentId);
-  chatTitle.textContent = agentId;
+  chatTitle.textContent = agentNodes.get(agentId)?.dataset.agentName ?? agentId;
   chatPanel.classList.add('is-open');
   chatPanel.setAttribute('aria-hidden', 'false');
   renderConversation();
@@ -95,9 +146,10 @@ function createAgentNode(agent: CreatedAgent) {
   node.className = 'agent-node';
   node.type = 'button';
   node.dataset.agentId = agent.id;
-  node.setAttribute('aria-label', `Agente ${agent.id}. Haz clic para conversar o arrástralo para moverlo.`);
+  node.dataset.agentName = agent.profile.name;
+  node.setAttribute('aria-label', `Agente ${agent.profile.name}. Haz clic para conversar o arrástralo para moverlo.`);
   node.innerHTML = '<span class="agent-core"></span><span class="agent-tooltip"></span>';
-  node.querySelector<HTMLElement>('.agent-tooltip')!.textContent = agent.id;
+  node.querySelector<HTMLElement>('.agent-tooltip')!.textContent = agent.profile.name;
   const rect = canvas.getBoundingClientRect();
   const offset = (spawnIndex++ % 6) * 28;
   node.style.left = `${Math.min(rect.width - 62, Math.max(26, rect.width / 2 - 26 + offset))}px`;
@@ -148,11 +200,41 @@ async function parseErrorResponse(response: Response): Promise<string> {
   return detail || `No se recibió respuesta del agente (HTTP ${response.status}).`;
 }
 
-async function requestAgent() {
+function readAgentProfile(): AgentProfile {
+  const formData = new FormData(agentForm);
+  const skills = String(formData.get('skills') ?? '')
+    .split(/[\n,]/)
+    .map((skill) => skill.trim())
+    .filter(Boolean);
+  return {
+    name: String(formData.get('name') ?? '').trim(),
+    position: String(formData.get('position') ?? '').trim(),
+    responsibilities: String(formData.get('responsibilities') ?? '').trim(),
+    limitations: String(formData.get('limitations') ?? '').trim(),
+    deliverables: String(formData.get('deliverables') ?? '').trim(),
+    skills,
+    operationalRole: String(formData.get('operationalRole') ?? '') as OperationalRole,
+    thinkingRole: String(formData.get('thinkingRole') ?? '') as ThinkingRole,
+  };
+}
+
+function openCreateAgentDialog() {
+  agentFormError.textContent = '';
+  agentDialog.showModal();
+  document.querySelector<HTMLInputElement>('#agent-name')!.focus();
+}
+
+async function requestAgent(profile: AgentProfile) {
   createButton.disabled = true;
+  submitAgentButton.disabled = true;
+  agentFormError.textContent = '';
   feedback.textContent = 'Creando agente…';
   try {
-    const response = await fetch('/api/chats', { method: 'POST' });
+    const response = await fetch('/api/chats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profile),
+    });
     if (!response.ok) throw new Error(await parseErrorResponse(response));
     const result = await response.json() as { allowed: boolean; agent?: CreatedAgent };
     if (!result.allowed || typeof result.agent?.id !== 'string' || !result.agent.id) throw new Error('El backend no devolvió un agente válido.');
@@ -160,11 +242,16 @@ async function requestAgent() {
     createAgentNode(result.agent);
     totalAgents += 1;
     updateCount();
-    feedback.textContent = `Agente ${result.agent.id} creado.`;
+    feedback.textContent = `Agente ${result.agent.profile.name} creado.`;
+    agentDialog.close();
+    agentForm.reset();
   } catch (error) {
-    feedback.textContent = error instanceof TypeError ? 'No fue posible conectar con el backend.' : error instanceof Error ? error.message : 'No se pudo crear el agente.';
+    const message = error instanceof TypeError ? 'No fue posible conectar con el backend.' : error instanceof Error ? error.message : 'No se pudo crear el agente.';
+    feedback.textContent = message;
+    agentFormError.textContent = message;
   } finally {
     createButton.disabled = false;
+    submitAgentButton.disabled = false;
   }
 }
 
@@ -196,6 +283,12 @@ async function sendMessage(event: SubmitEvent) {
   }
 }
 
-createButton.addEventListener('click', requestAgent);
+createButton.addEventListener('click', openCreateAgentDialog);
+agentForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  if (!agentForm.reportValidity()) return;
+  void requestAgent(readAgentProfile());
+});
+cancelAgentButtons.forEach((button) => button.addEventListener('click', () => agentDialog.close()));
 messageForm.addEventListener('submit', sendMessage);
 closeChat.addEventListener('click', closeConversation);

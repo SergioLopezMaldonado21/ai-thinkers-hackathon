@@ -6,10 +6,13 @@
   "scripts": {
     "dev": "vite",
     "dev:frontend": "vite",
-    "dev:backend": "node --env-file-if-exists=.env backend/server.mjs",
-    "build": "tsc && vite build",
+    "dev:backend": "node --env-file-if-exists=.env --watch --import tsx backend/src/index.ts",
+    "start:backend": "node --env-file-if-exists=.env backend/dist/index.js",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "tsc -p backend/tsconfig.json",
+    "build:frontend": "tsc -p tsconfig.json && vite build",
     "test": "npm run test:backend && npm run test:frontend",
-    "test:backend": "node --test backend/test/*.test.mjs",
+    "test:backend": "tsc -p backend/tsconfig.test.json && node --import tsx --test backend/test/*.test.ts",
     "test:frontend": "node --experimental-strip-types --test src/conversation-store.test.mjs",
     "preview": "vite preview"
   },
@@ -17,6 +20,8 @@
     "phaser": "^3.90.0"
   },
   "devDependencies": {
+    "@types/node": "^22.20.2",
+    "tsx": "^4.23.13",
     "typescript": "^5.7.2",
     "vite": "^6.0.7"
   }

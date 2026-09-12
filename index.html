@@ -18,6 +18,29 @@
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
       </section>
       <button id="create-agent" class="create-agent" type="button" aria-label="Crear nuevo agente"><span class="plus">+</span><span>Nuevo agente</span></button>
+      <dialog id="agent-dialog" class="agent-dialog" aria-labelledby="agent-dialog-title">
+        <form id="agent-form" class="agent-form">
+          <header class="agent-form-header">
+            <div><p class="eyebrow">CONFIGURACIÓN</p><h2 id="agent-dialog-title">Crear agente</h2></div>
+            <button id="cancel-agent" class="close-chat" type="button" aria-label="Cancelar creación">×</button>
+          </header>
+          <p class="agent-form-intro">Define su trabajo y sus límites. Debe tener un rol operativo y uno de pensamiento.</p>
+          <div class="agent-form-grid">
+            <label>Nombre<input id="agent-name" name="name" maxlength="160" required autocomplete="off" /></label>
+            <label>Puesto<input id="agent-position" name="position" maxlength="160" required autocomplete="off" /></label>
+          </div>
+          <label>Qué hace<textarea id="agent-responsibilities" name="responsibilities" maxlength="2000" required></textarea></label>
+          <label>Qué no hace<textarea id="agent-limitations" name="limitations" maxlength="2000" required></textarea></label>
+          <label>Qué entrega<textarea id="agent-deliverables" name="deliverables" maxlength="2000" required></textarea></label>
+          <label>Habilidades<span class="field-hint">Una por línea o separadas por coma.</span><textarea id="agent-skills" name="skills" maxlength="3200" required></textarea></label>
+          <div class="agent-form-grid">
+            <label>Rol operativo<select id="agent-operational-role" name="operationalRole" required></select></label>
+            <label>Rol de pensamiento<select id="agent-thinking-role" name="thinkingRole" required></select></label>
+          </div>
+          <p id="agent-form-error" class="agent-form-error" role="alert"></p>
+          <footer class="agent-form-actions"><button id="cancel-agent-footer" type="button" class="secondary-button">Cancelar</button><button id="submit-agent" type="submit">Crear agente</button></footer>
+        </form>
+      </dialog>
       <aside id="chat-panel" class="chat-panel" aria-hidden="true">
         <header class="chat-header"><div><p class="eyebrow">CONVERSACIÓN</p><h2 id="chat-title">Agente</h2></div><button id="close-chat" class="close-chat" type="button" aria-label="Cerrar conversación">×</button></header>
         <div id="messages" class="messages" aria-live="polite"></div>
