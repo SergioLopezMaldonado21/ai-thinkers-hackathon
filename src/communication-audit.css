@@ -3,40 +3,40 @@
   max-height: calc(100dvh - 40px);
   padding: 0;
   overflow: hidden;
-  border: 1px solid #53618f;
+  border: 1px solid var(--line);
   border-radius: 18px;
-  color: #eef2ff;
-  background: #10162a;
-  box-shadow: 0 28px 100px #02040ee6;
+  color: var(--ink);
+  background: var(--card);
+  box-shadow: 0 28px 100px rgb(27 35 64 / 25%);
 }
 .communication-audit[open] { display: flex; flex-direction: column; }
-.communication-audit::backdrop { background: #03050fc9; }
-.communication-audit-header { display: flex; flex: 0 0 auto; align-items: flex-start; gap: 20px; padding: 24px 24px 18px; border-bottom: 1px solid #303a5b; }
+.communication-audit::backdrop { background: rgb(27 35 64 / 38%); }
+.communication-audit-header { display: flex; flex: 0 0 auto; align-items: flex-start; gap: 20px; padding: 24px 24px 18px; border-bottom: 1px solid var(--line); }
 .communication-audit-heading { flex: 1; min-width: 0; }
-.communication-audit-eyebrow { margin: 0 0 8px; color: #a1b0ff; font: 10px 'DM Mono', monospace; letter-spacing: .12em; }
-.communication-audit-title { margin: 0; font-size: 21px; overflow-wrap: anywhere; }
-.communication-audit-subtitle { margin: 9px 0 0; color: #a8b1cf; font-size: 13px; line-height: 1.5; }
-.communication-audit-close { display: grid; flex: 0 0 auto; width: 36px; height: 36px; padding: 0; place-items: center; border: 1px solid #53618f; border-radius: 50%; color: #e3e8ff; background: #19213b; cursor: pointer; font-size: 24px; }
-.communication-audit-close:hover { border-color: #bac5ff; background: #293558; }
-.communication-audit-close:focus-visible, .communication-audit-messages:focus-visible { outline: 2px solid #b9c6ff; outline-offset: -3px; }
-.communication-audit-summary { flex: 0 0 auto; margin: 0; padding: 13px 24px; color: #b3c0e3; font-size: 12px; }
+.communication-audit-eyebrow { margin: 0 0 8px; color: #456bc5; font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.communication-audit-title { margin: 0; font-family: Fredoka, system-ui, sans-serif; font-size: 24px; overflow-wrap: anywhere; }
+.communication-audit-subtitle { margin: 9px 0 0; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+.communication-audit-close { display: grid; flex: 0 0 auto; width: 36px; height: 36px; padding: 0; place-items: center; border: 1px solid var(--line); border-radius: 12px; color: var(--ink-2); background: var(--card); cursor: pointer; font-size: 24px; }
+.communication-audit-close:hover { border-color: #b9c9fa; background: var(--soft); }
+.communication-audit-close:focus-visible, .communication-audit-messages:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.communication-audit-summary { flex: 0 0 auto; margin: 0; padding: 13px 24px; color: var(--ink-2); font-size: 12px; }
 .communication-audit-messages { min-height: 160px; padding: 0 24px 24px; overflow-y: auto; overscroll-behavior: contain; }
-.communication-audit-empty { margin: 30px auto; max-width: 400px; color: #a8b1cf; text-align: center; font-size: 14px; line-height: 1.6; }
+.communication-audit-empty { margin: 30px auto; max-width: 400px; color: var(--ink-2); text-align: center; font-size: 14px; line-height: 1.6; }
 .communication-audit-run + .communication-audit-run { margin-top: 28px; }
-.communication-audit-run-title { margin: 0 0 15px; padding: 10px 0; border-bottom: 1px solid #303a5b; color: #95a4ce; font: 11px 'DM Mono', monospace; overflow-wrap: anywhere; }
+.communication-audit-run-title { margin: 0 0 15px; padding: 10px 0; border-bottom: 1px solid var(--line); color: var(--ink-2); font-size: 11px; font-weight: 700; overflow-wrap: anywhere; }
 .communication-audit-exchange + .communication-audit-exchange { margin-top: 22px; }
 .communication-audit-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 10px; font-size: 11px; }
-.communication-audit-round { color: #b2bee2; }
-.communication-audit-status { padding: 4px 8px; border-radius: 20px; color: #b9f0dd; background: #183a37; }
-.communication-audit-status.is-pending { color: #ffdfa0; background: #3f3523; }
-.communication-audit-status.is-error { color: #ffd1db; background: #4a2535; }
-.communication-audit-message { width: 92%; padding: 13px 15px; border: 1px solid #465485; border-radius: 12px; }
-.communication-audit-message.is-request { margin-left: auto; background: #252e50; }
-.communication-audit-message.is-response { margin-top: 9px; background: #151e35; border-color: #344767; }
-.communication-audit-message.is-error { border-color: #824057; background: #321f2b; }
-.communication-audit-speaker { margin: 0 0 8px; color: #c3cff7; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.communication-audit-round { color: var(--ink-2); }
+.communication-audit-status { padding: 4px 8px; border-radius: 999px; color: #227c55; background: #eaf8f0; }
+.communication-audit-status.is-pending { color: #8a610c; background: #fff6dd; }
+.communication-audit-status.is-error { color: #b32f45; background: #fff0f2; }
+.communication-audit-message { width: 92%; padding: 13px 15px; border: 1px solid #dce4fb; border-radius: 12px; }
+.communication-audit-message.is-request { margin-left: auto; background: var(--blue-soft); }
+.communication-audit-message.is-response { margin-top: 9px; background: var(--soft); border-color: var(--line); }
+.communication-audit-message.is-error { border-color: #efc2cc; background: #fff0f2; }
+.communication-audit-speaker { margin: 0 0 8px; color: #315dcc; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
 .communication-audit-text { margin: 0; font-size: 14px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
-.communication-audit-time { margin: 10px 0 0; color: #a4b2d2; font-size: 10px; }
+.communication-audit-time { margin: 10px 0 0; color: var(--ink-2); font-size: 10px; }
 @media (max-width: 600px) {
   .communication-audit { width: calc(100vw - 16px); max-height: calc(100dvh - 20px); border-radius: 12px; }
   .communication-audit-header { gap: 10px; padding: 18px 15px 14px; }

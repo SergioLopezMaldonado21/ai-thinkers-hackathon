@@ -1,11 +1,18 @@
-# Agent Canvas
+# MiniOficina · Agent Canvas
 
 Aplicación web con frontend Vite/TypeScript y backend Node.js que genera
 respuestas mediante la API de OpenRouter.
 
-Cada círculo del canvas representa una conversación independiente. El ID que
-aparece en el tooltip es una sesión local generada por el backend y también se
-envía a OpenRouter como `session_id` para mantener afinidad de enrutamiento.
+Cada avatar de la oficina representa una conversación independiente. Su ID se
+genera en el backend y se envía a OpenRouter como `session_id` para mantener
+afinidad de enrutamiento. La vista **Agentes** permite buscar el equipo y abrir
+sus chats; **Nuevo chat** abre el selector de conversaciones. Al crear un agente
+puedes elegir cuerpo, ojos, accesorio y color, guardados en este navegador.
+
+La integración visual de `feature/dashboard-agentes` conserva el backend y la
+coordinación de `codex/feature-office-coordination-audit`. Consulta
+[el informe de integración](docs/integracion-dashboard.md) para el alcance y las
+validaciones.
 
 ## Requisitos
 
@@ -157,13 +164,15 @@ y los cierran al terminar:
 ```bash
 node scripts/verify-office-ui.mjs
 node --import tsx scripts/verify-office-e2e.mjs
+node scripts/verify-dashboard-ui.mjs
 ```
 
 La primera usa respuestas HTTP de prueba para revisar la interfaz. La segunda
 usa el backend real con un proveedor simulado y verifica creación, conexiones,
 delegación, auditoría, memoria e historial tras recargar. Ninguna carga `.env`
 ni contacta al modelo. Si Playwright está en otro directorio, define
-`PLAYWRIGHT_MODULE` con la ruta de su paquete antes de ejecutarlas.
+`PLAYWRIGHT_MODULE` con la ruta de su paquete antes de ejecutarlas. La tercera
+verifica el dashboard, la selección de avatares y la nueva experiencia de chats.
 
 ## Diagnóstico
 

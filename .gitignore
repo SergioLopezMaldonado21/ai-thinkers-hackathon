@@ -3,3 +3,5 @@ dist/
 backend/dist/
 .DS_Store
 .env
+artifacts/
+/debug.log

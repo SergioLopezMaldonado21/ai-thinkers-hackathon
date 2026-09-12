@@ -1,6 +1,8 @@
 import './style.css';
 import { ConversationStore, type Conversation } from './conversation-store';
 import { createCommunicationAudit } from './communication-audit';
+import { mountAgentAvatar, mountAvatarPicker, mountAgentDashboard, saveAgentAvatar, createAgentAvatarElement } from './visuals/agent-dashboard';
+import { createChatExperience } from './visuals/chat-experience';
 
 type OperationalRole =
   | 'lead_manager' | 'researcher_intel' | 'secretary_executive_assistant' | 'scribe_recorder'
@@ -61,6 +63,10 @@ const officeStatus = document.querySelector<HTMLElement>('#office-status')!;
 
 const conversations = new ConversationStore();
 const agentNodes = new Map<string, HTMLButtonElement>();
+const agentCatalog = new Map<string, CreatedAgent>();
+const nodeAvatars = new Map<string, ReturnType<typeof mountAgentAvatar>>();
+const drafts = new Map<string, string>();
+const historyErrors = new Map<string, string>();
 const agentConnections: AgentConnection[] = [];
 let selectedAgentId: string | null = null;
 let totalAgents = 0;
@@ -84,6 +90,44 @@ let pageStopped = false;
 const communicationAudit = createCommunicationAudit();
 const historiesLoading = new Set<string>();
 const personalHistoryPending = new Set<string>();
+const avatarPicker = mountAvatarPicker(document.querySelector<HTMLElement>('#agent-avatar-picker')!);
+const dashboard = mountAgentDashboard(document.querySelector<HTMLElement>('#agent-dashboard')!, {
+  onOpenAgent: openConversation, onCreateAgent: openCreateAgentDialog,
+});
+const chatExperience = createChatExperience({
+  panel: chatPanel, messages: messagesElement, input: messageInput, getConversation,
+  onSelectAgent: openConversation, onCreateAgent: openCreateAgentDialog, onClose: closeConversation,
+  createAvatar: (id, name) => createAgentAvatarElement(id, name, 40),
+});
+
+function updateChatExperience() {
+  chatExperience.update({
+    agents: [...agentCatalog.values()], selectedAgentId, activeAgentIds,
+    loading: selectedAgentId ? historiesLoading.has(selectedAgentId) : false,
+    historyError: selectedAgentId ? historyErrors.get(selectedAgentId) : undefined,
+  });
+}
+
+function updateVisuals() {
+  dashboard.update({
+    agents: [...agentCatalog.values()], activeAgentIds, connections: agentConnections,
+    rootId: rootAgentId, ready: officeReady, createPending: agentCreationPending,
+  });
+  updateChatExperience();
+  document.querySelector<HTMLElement>('#workspace-status')!.textContent = officeStatus.textContent;
+  document.querySelector<HTMLElement>('.canvas-copy')!.hidden = agentNodes.size > 0;
+}
+
+function selectView(view: string) {
+  const isDashboard = view === 'dashboard';
+  document.querySelector<HTMLElement>('#office-view')!.hidden = isDashboard;
+  document.querySelector<HTMLElement>('#dashboard-view')!.hidden = !isDashboard;
+  document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((button) => {
+    if (button.dataset.view === (isDashboard ? 'dashboard' : 'office')) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
+  if (!isDashboard) requestConnectionRender();
+}
 
 function pairKey(bossId: string, subordinateId: string) {
   return JSON.stringify([bossId, subordinateId]);
@@ -130,6 +174,11 @@ function applyOfficeSnapshot(snapshot: OfficeSnapshot, revision: number, catalog
       if (knownIds.has(id)) continue;
       node.remove();
       agentNodes.delete(id);
+      agentCatalog.delete(id);
+      nodeAvatars.get(id)?.destroy();
+      nodeAvatars.delete(id);
+      drafts.delete(id);
+      historyErrors.delete(id);
       personalHistoryPending.delete(id);
       if (connectionDraftBossId === id) clearConnectionDraft();
       if (selectedAgentId === id) {
@@ -167,6 +216,7 @@ function applyOfficeSnapshot(snapshot: OfficeSnapshot, revision: number, catalog
   officeStatus.textContent = activePairs.size
     ? `${activePairs.size} ${activePairs.size === 1 ? 'consulta interna activa' : 'consultas internas activas'} · flechas iluminadas`
     : activeAgentIds.size ? 'Agentes trabajando · sin consultas internas activas' : 'Oficina conectada · sin consultas internas activas';
+  updateVisuals();
 }
 
 async function pollOffice() {
@@ -188,6 +238,7 @@ async function pollOffice() {
     requestConnectionRender();
     for (const id of agentNodes.keys()) updateAgentActivity(id);
     officeStatus.textContent = 'Sin conexión con la oficina · reintentando…';
+    updateVisuals();
   } finally {
     clearTimeout(timeout);
     pollInFlight = false;
@@ -382,6 +433,15 @@ function requestConnectionRender() {
   requestAnimationFrame(renderConnections);
 }
 
+function resizeOffice() {
+  if (!canvas.clientWidth || !canvas.clientHeight) return;
+  for (const node of agentNodes.values()) {
+    node.style.left = `${Math.max(0, Math.min(canvas.clientWidth - node.offsetWidth, parseFloat(node.style.left)))}px`;
+    node.style.top = `${Math.max(0, Math.min(canvas.clientHeight - node.offsetHeight - 24, parseFloat(node.style.top)))}px`;
+  }
+  requestConnectionRender();
+}
+
 async function connectAgents(bossId: string, subordinateId: string) {
   if (!officeReady || treeSaving || activeAgentIds.size) {
     feedback.textContent = 'Espera a que la oficina termine de trabajar antes de conectar agentes.';
@@ -457,31 +517,8 @@ function updateComposer() {
 }
 
 function renderConversation() {
-  messagesElement.replaceChildren();
-  if (!selectedAgentId) return;
-  const conversation = getConversation(selectedAgentId);
-
-  if (!conversation.messages.length && !conversation.pending) {
-    const empty = document.createElement('p');
-    empty.className = 'empty-chat';
-    empty.textContent = 'Envía un mensaje para iniciar la conversación.';
-    messagesElement.append(empty);
-  }
-  for (const message of conversation.messages) {
-    const item = document.createElement('p');
-    item.className = `message ${message.role}`;
-    item.textContent = message.text;
-    messagesElement.append(item);
-  }
-  if (conversation.pending) {
-    const pending = document.createElement('p');
-    pending.className = 'message agent pending';
-    pending.setAttribute('role', 'status');
-    pending.textContent = 'El agente está respondiendo…';
-    messagesElement.append(pending);
-  }
+  updateChatExperience();
   updateComposer();
-  requestAnimationFrame(() => { messagesElement.scrollTop = messagesElement.scrollHeight; });
 }
 
 function updateAgentActivity(threadId: string) {
@@ -489,20 +526,26 @@ function updateAgentActivity(threadId: string) {
   const node = agentNodes.get(threadId);
   node?.classList.toggle('is-responding', pending);
   node?.setAttribute('aria-busy', String(pending));
+  nodeAvatars.get(threadId)?.update({ agentId: threadId, active: pending, size: 62, name: node?.dataset.agentName });
 }
 
 function refreshThread(threadId: string) {
   updateAgentActivity(threadId);
   if (selectedAgentId === threadId) renderConversation();
+  updateVisuals();
 }
 
 function openConversation(agentId: string) {
+  if (!agentCatalog.has(agentId)) return;
   communicationAudit.close();
+  if (selectedAgentId) drafts.set(selectedAgentId, messageInput.value);
   selectedAgentId = agentId;
+  messageInput.value = drafts.get(agentId) ?? '';
   getConversation(agentId);
   chatTitle.textContent = agentNodes.get(agentId)?.dataset.agentName ?? agentId;
   chatPanel.classList.add('is-open');
   chatPanel.setAttribute('aria-hidden', 'false');
+  chatPanel.inert = false;
   renderConversation();
   if (!messageInput.disabled) messageInput.focus();
   void loadPersonalHistory(agentId);
@@ -512,6 +555,8 @@ async function loadPersonalHistory(agentId: string) {
   const conversation = getConversation(agentId);
   if (conversation.pending || historiesLoading.has(agentId)) return;
   historiesLoading.add(agentId);
+  historyErrors.delete(agentId);
+  updateChatExperience();
   const initialMessageCount = conversation.messages.length;
   try {
     const response = await fetch(`/api/chats/${encodeURIComponent(agentId)}/messages`, { cache: 'no-store' });
@@ -524,20 +569,30 @@ async function loadPersonalHistory(agentId: string) {
     conversation.messages.splice(0, conversation.messages.length, ...history.messages);
     if (selectedAgentId === agentId) renderConversation();
   } catch (error) {
-    if (selectedAgentId === agentId) feedback.textContent = `No se pudo cargar el historial personal: ${error instanceof Error ? error.message : 'error de conexión'}`;
+    const message = `No se pudo cargar el historial personal: ${error instanceof Error ? error.message : 'error de conexión'}`;
+    historyErrors.set(agentId, message);
+    if (selectedAgentId === agentId) feedback.textContent = message;
   } finally {
     historiesLoading.delete(agentId);
+    updateChatExperience();
   }
 }
 
 function closeConversation() {
+  const previous = selectedAgentId;
+  if (previous) drafts.set(previous, messageInput.value);
   selectedAgentId = null;
   chatPanel.classList.remove('is-open');
   chatPanel.setAttribute('aria-hidden', 'true');
+  chatPanel.inert = true;
+  updateChatExperience();
+  if (previous && !document.querySelector<HTMLElement>('#office-view')!.hidden) agentNodes.get(previous)?.focus();
+  else document.querySelector<HTMLButtonElement>('#new-chat')!.focus();
 }
 
 function createAgentNode(agent: CreatedAgent) {
   if (agentNodes.has(agent.id)) return;
+  agentCatalog.set(agent.id, agent);
   const node = document.createElement('button');
   node.className = 'agent-node';
   node.type = 'button';
@@ -546,15 +601,20 @@ function createAgentNode(agent: CreatedAgent) {
   node.setAttribute('aria-label', `Agente ${agent.profile.name}. Haz clic para conversar o arrástralo para moverlo.`);
   node.innerHTML = '<span class="agent-core"></span><span class="agent-tooltip"></span>';
   node.querySelector<HTMLElement>('.agent-tooltip')!.textContent = agent.profile.name;
+  nodeAvatars.set(agent.id, mountAgentAvatar(node.querySelector<HTMLElement>('.agent-core')!, {
+    agentId: agent.id, size: 62, name: agent.profile.name,
+  }));
   const rect = canvas.getBoundingClientRect();
+  const canvasWidth = rect.width || document.querySelector<HTMLElement>('.workspace-content')!.clientWidth || 720;
+  const canvasHeight = rect.height || 540;
   const spacing = 112;
-  const columns = Math.max(1, Math.floor((rect.width - 110) / spacing) + 1);
-  const rows = Math.max(1, Math.floor((rect.height - 150) / spacing) + 1);
+  const columns = Math.max(1, Math.floor((canvasWidth - 110) / spacing) + 1);
+  const rows = Math.max(1, Math.floor((canvasHeight - 150) / spacing) + 1);
   const slot = spawnIndex++ % (columns * rows);
   const column = slot % columns;
   const row = Math.floor(slot / columns);
-  node.style.left = `${Math.max(0, Math.min(rect.width - 62, 24 + column * spacing))}px`;
-  node.style.top = `${Math.max(0, Math.min(rect.height - 62, 48 + row * spacing))}px`;
+  node.style.left = `${Math.max(0, Math.min(canvasWidth - 62, 24 + column * spacing))}px`;
+  node.style.top = `${Math.max(0, Math.min(canvasHeight - 62, 48 + row * spacing))}px`;
 
   let pointerOffsetX = 0;
   let pointerOffsetY = 0;
@@ -652,6 +712,7 @@ function fillRandomAgentProfile() {
 }
 
 function openCreateAgentDialog() {
+  if (agentCreationPending || agentDialog.open) return;
   agentFormError.textContent = '';
   agentDialog.showModal();
   document.querySelector<HTMLInputElement>('#agent-name')!.focus();
@@ -664,6 +725,7 @@ async function requestAgent(profile: AgentProfile) {
   submitAgentButton.disabled = true;
   agentFormError.textContent = '';
   feedback.textContent = 'Creando agente…';
+  updateVisuals();
   try {
     const response = await fetch('/api/chats', {
       method: 'POST',
@@ -673,12 +735,14 @@ async function requestAgent(profile: AgentProfile) {
     if (!response.ok) throw new Error(await parseErrorResponse(response));
     const result = await response.json() as { allowed: boolean; agent?: CreatedAgent };
     if (!result.allowed || typeof result.agent?.id !== 'string' || !result.agent.id) throw new Error('El backend no devolvió un agente válido.');
+    saveAgentAvatar(result.agent.id, avatarPicker.getValue());
     createAgentNode(result.agent);
     totalAgents = agentNodes.size;
     updateCount();
     feedback.textContent = `Agente ${result.agent.profile.name} creado.`;
     agentDialog.close();
     agentForm.reset();
+    avatarPicker.reset();
   } catch (error) {
     const message = error instanceof TypeError ? 'No fue posible conectar con el backend.' : error instanceof Error ? error.message : 'No se pudo crear el agente.';
     feedback.textContent = message;
@@ -688,6 +752,7 @@ async function requestAgent(profile: AgentProfile) {
     agentCatalogRevision += 1;
     createButton.disabled = false;
     submitAgentButton.disabled = false;
+    updateVisuals();
   }
 }
 
@@ -701,6 +766,7 @@ async function sendMessage(event: SubmitEvent) {
 
   if (!conversations.startTurn(threadId, text)) return;
   messageInput.value = '';
+  drafts.delete(threadId);
   refreshThread(threadId);
   try {
     const response = await fetch(`/api/message/${encodeURIComponent(threadId)}`, {
@@ -721,7 +787,10 @@ async function sendMessage(event: SubmitEvent) {
 
 createButton.addEventListener('click', openCreateAgentDialog);
 fillRandomAgentButton.addEventListener('click', fillRandomAgentProfile);
-connectButton.addEventListener('click', () => setConnectionMode(!connectionMode));
+connectButton.addEventListener('click', () => {
+  location.hash = 'office';
+  setConnectionMode(!connectionMode);
+});
 connectionsVisibilityButton.addEventListener('click', () => {
   connectionsVisible = !connectionsVisible;
   updateConnectionControls();
@@ -734,13 +803,20 @@ agentForm.addEventListener('submit', (event) => {
 cancelAgentButtons.forEach((button) => button.addEventListener('click', () => agentDialog.close()));
 messageForm.addEventListener('submit', sendMessage);
 closeChat.addEventListener('click', closeConversation);
+messageInput.addEventListener('input', () => { if (selectedAgentId) drafts.set(selectedAgentId, messageInput.value); });
+document.querySelector<HTMLButtonElement>('#new-chat')!.addEventListener('click', () => chatExperience.openPicker());
+document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach((button) => {
+  button.addEventListener('click', () => { location.hash = button.dataset.view!; });
+});
+window.addEventListener('hashchange', () => selectView(location.hash.slice(1)));
+selectView(location.hash.slice(1));
 auditPairSelect.addEventListener('change', updateAuditChoices);
 auditPairButton.addEventListener('click', () => {
   const connection = agentConnections.find((item) => item.id === auditPairSelect.value);
   if (connection) openAudit(connection.bossId, connection.subordinateId);
 });
-window.addEventListener('resize', requestConnectionRender);
-new ResizeObserver(requestConnectionRender).observe(canvas);
+window.addEventListener('resize', resizeOffice);
+new ResizeObserver(resizeOffice).observe(canvas);
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && connectionMode && connectionDraftBossId) {
     clearConnectionDraft();
@@ -749,6 +825,7 @@ document.addEventListener('keydown', (event) => {
 });
 updateConnectionControls();
 updateAuditChoices();
+updateVisuals();
 void pollOffice();
 window.addEventListener('pagehide', () => {
   pageStopped = true;

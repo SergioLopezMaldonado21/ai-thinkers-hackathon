@@ -14,13 +14,18 @@
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "tsc -p backend/tsconfig.test.json && node --import tsx --test backend/test/*.test.ts",
     "test:frontend": "node --experimental-strip-types --test src/conversation-store.test.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p backend/tsconfig.test.json --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
-    "phaser": "^3.90.0"
+    "phaser": "^3.90.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.20.2",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
     "tsx": "^4.23.13",
     "typescript": "^5.7.2",
     "vite": "^6.0.7"

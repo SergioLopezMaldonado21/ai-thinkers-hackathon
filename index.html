@@ -3,13 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0b1020" />
-    <title>Agent Canvas</title>
+    <meta name="theme-color" content="#F7F8FC" />
+    <title>MiniOficina · Tu equipo de agentes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <aside class="app-sidebar" aria-label="Navegación principal">
+      <a class="brand" href="#office"><span class="brand-mark" aria-hidden="true">m<span>o</span></span><span>MiniOficina<small>Un pequeño gran equipo</small></span></a>
+      <nav class="workspace-nav" aria-label="Vistas de la oficina">
+        <button type="button" data-view="office" aria-current="page"><span aria-hidden="true">▦</span> Mi oficina</button>
+        <button type="button" data-view="dashboard"><span aria-hidden="true">◉</span> Agentes</button>
+        <button type="button" id="new-chat"><span aria-hidden="true">✦</span> Nuevo chat</button>
+      </nav>
+      <div class="sidebar-note"><span aria-hidden="true">✧</span><strong>Ideas grandes.<br />Equipo a tu medida.</strong><p>Crea agentes, conecta sus talentos y conversa con ellos.</p></div>
+    </aside>
     <main class="workspace">
       <header class="toolbar">
-        <div><p class="eyebrow">LIVE WORKSPACE</p><h1>Agent Canvas</h1></div>
+        <div><p class="eyebrow">TU EQUIPO EN UN SOLO LUGAR</p><h1>MiniOficina</h1><p id="workspace-status" class="workspace-status" role="status">Conectando con tu equipo…</p></div>
         <div class="toolbar-actions">
           <p id="agent-count" class="agent-count">0 agentes</p>
           <div class="audit-controls">
@@ -26,13 +38,18 @@
           </button>
         </div>
       </header>
+      <div class="workspace-content">
+      <section id="office-view" aria-label="Mi oficina">
       <section id="canvas" class="canvas" aria-label="Canvas de agentes">
         <p id="office-status" class="office-status" role="status">Conectando con la oficina…</p>
         <div class="canvas-grid" aria-hidden="true"></div>
         <svg id="connection-layer" class="connection-layer" aria-hidden="true"></svg>
-        <div class="canvas-copy" aria-hidden="true"><span>ESPACIO DE TRABAJO</span><p>Crea agentes y muévelos<br />libremente por el canvas.</p></div>
+        <div class="canvas-copy" aria-hidden="true"><span>UNA OFICINA LLENA DE POSIBILIDADES</span><p>Crea tu equipo. Conecta sus talentos.<br />Dale vida a tu próxima idea.</p></div>
         <p id="feedback" class="feedback" role="status" aria-live="polite"></p>
       </section>
+      </section>
+      <section id="dashboard-view" aria-label="Dashboard de agentes" hidden><div id="agent-dashboard"></div></section>
+      </div>
       <button id="create-agent" class="create-agent" type="button" aria-label="Crear nuevo agente"><span class="plus">+</span><span>Nuevo agente</span></button>
       <dialog id="agent-dialog" class="agent-dialog" aria-labelledby="agent-dialog-title">
         <form id="agent-form" class="agent-form">
@@ -41,6 +58,7 @@
             <button id="cancel-agent" class="close-chat" type="button" aria-label="Cancelar creación">×</button>
           </header>
           <p class="agent-form-intro">Define su trabajo y sus límites. Debe tener un rol operativo y uno de pensamiento.</p>
+          <div id="agent-avatar-picker" aria-label="Personaliza el avatar del agente"></div>
           <div class="agent-form-grid">
             <label>Nombre<input id="agent-name" name="name" maxlength="160" required autocomplete="off" /></label>
             <label>Puesto<input id="agent-position" name="position" maxlength="160" required autocomplete="off" /></label>
@@ -57,7 +75,7 @@
           <footer class="agent-form-actions"><button id="fill-random-agent" type="button" class="secondary-button">Autorrellenar al azar</button><button id="cancel-agent-footer" type="button" class="secondary-button">Cancelar</button><button id="submit-agent" type="submit">Crear agente</button></footer>
         </form>
       </dialog>
-      <aside id="chat-panel" class="chat-panel" aria-hidden="true">
+      <aside id="chat-panel" class="chat-panel" aria-hidden="true" aria-label="Conversación personal" inert>
         <header class="chat-header"><div><p class="eyebrow">TU CHAT PERSONAL</p><h2 id="chat-title">Agente</h2></div><button id="close-chat" class="close-chat" type="button" aria-label="Cerrar conversación">×</button></header>
         <p class="chat-context">Habla directamente con este agente. Sus consultas al equipo se muestran en «Ver comunicación».</p>
         <div id="messages" class="messages" aria-live="polite"></div>
